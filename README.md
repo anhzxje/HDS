@@ -1,6 +1,6 @@
 # HDS Intern Management System
 
-Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu chỉ thị xuất kho (**Sale Out**) được xây dựng theo kiến trúc phân lớp sạch (Clean Architecture & Modular Design).
+Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu chỉ thị xuất kho (**Sale Out**) được tổ chức theo các tầng Controller, Service và Repository.
 
 ---
 
@@ -39,13 +39,14 @@ Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu
 
 ## 📁 Cấu trúc thư mục (Architecture)
 
-Dự án được phân chia module rõ ràng theo nguyên tắc **Single Responsibility Principle (SRP)**:
+Backend được tổ chức theo luồng `Controller → Service → Repository → SQL Server`:
 
 ```text
 HDS/
 ├── WebApi/                          # Backend .NET Core API
 │   ├── Controllers/                 # Điều hướng API (Database, Products, SaleOuts)
-│   ├── Services/                    # Xử lý logic nghiệp vụ (Database, Product, SaleOut)
+│   ├── Services/                    # Kiểm tra điều kiện và gọi repository
+│   ├── Repositories/                # Truy cập SQL Server bằng Dapper
 │   ├── Models/
 │   │   ├── Products/                # Entity & Request Model sản phẩm
 │   │   ├── SaleOuts/                # DTO hiển thị & Request Model xuất hàng
@@ -65,6 +66,17 @@ HDS/
 │
 └── HDS_Intern.xlsx                  # Tài liệu đặc tả yêu cầu & Plan dự án
 ```
+
+### Luồng xử lý backend
+
+1. **Controller** nhận HTTP request, kiểm tra dữ liệu đầu vào và trả HTTP response.
+2. **Service** xử lý các điều kiện tìm kiếm và gọi Repository tương ứng.
+3. **Repository** tạo kết nối, thực thi SQL qua Dapper và trả dữ liệu về Service.
+4. Các Service và Repository được đăng ký bằng `AddScoped` trong `WebApi/Program.cs` và được cung cấp qua constructor injection.
+
+Ví dụ: `GET /api/products?page=1&pageSize=20` đi qua `ProductsController.GetProducts`, `ProductService.GetProductsAsync`, rồi `ProductRepository.GetProductsAsync`. Repository đọc danh sách và tổng số bản ghi; Controller dùng kết quả để tạo response.
+
+Khi tạo phiếu xuất, `SaleOutRepository` giữ transaction và một số kiểm tra nghiệp vụ liên quan đến dữ liệu trong cùng luồng xử lý. Không phải mọi quy tắc nghiệp vụ hiện đều nằm ở Service.
 
 ---
 
