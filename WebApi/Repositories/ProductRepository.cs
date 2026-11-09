@@ -144,7 +144,7 @@ public class ProductRepository
     }
 
     public async Task ImportProductsAsync(
-        IReadOnlyList<(int RowNumber, CreateProductRequest Product)> products)
+        IReadOnlyList<ImportProductRow> products)
     {
         const string sql = """
             INSERT INTO dbo.MasterProduct

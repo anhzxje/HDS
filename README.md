@@ -1,4 +1,4 @@
-# HDS Intern Management System
+# HDS Management System
 
 Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu chỉ thị xuất kho (**Sale Out**) được tổ chức theo các tầng Controller, Service và Repository.
 
@@ -10,15 +10,27 @@ Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu
 * **Tra cứu & Tìm kiếm:** Lọc sản phẩm theo nhiều trường dữ liệu (*Mã SP, Tên SP, Đơn vị tính, Quy cách, Trọng lượng...*).
 * **Phân trang tối ưu:** Phân trang trực tiếp từ SQL Server (`OFFSET - FETCH NEXT`) với 20 bản ghi/trang.
 * **Quản trị CRUD:** Thêm mới (validate trùng mã), Chỉnh sửa (khóa mã & tên sản phẩm), Xóa an toàn kèm hộp thoại xác nhận.
-* **Tương tác Excel:** Tải file mẫu chuẩn, upload hàng loạt sản phẩm từ file Excel (EPPlus) với cơ chế kiểm tra dữ liệu nghiêm ngặt và Transaction an toàn.
+* **Tương tác Excel:** Tải file mẫu trống và upload hàng loạt sản phẩm từ file `.xlsx`. Dữ liệu được kiểm tra trước khi lưu trong transaction.
 
 ### 2. Quản lý Xuất hàng (`SaleOut`)
 * **Theo dõi phiếu xuất:** Quản lý mã phiếu tự sinh dạng `STO<yyyyMMxxxx>`, số PO khách hàng, ngày đặt hàng, khách hàng.
-* **Tính toán tự động:** Tự động tính **Số thùng** và **Thành tiền** dựa trên số lượng, quy cách và đơn giá.
-* **Hiển thị trực quan:** Giao diện bảng rộng (`wide-table`), chống rớt dòng dữ liệu, định dạng tiền tệ và ngày tháng chuẩn tiếng Việt.
-* **Báo cáo & In ấn:**
-  * Xuất phiếu xuất kho dạng PDF kèm mã **QR Code** (QuestPDF & QRCoder).
-  * Báo cáo doanh thu sản phẩm theo khoảng thời gian qua Table-valued Function SQL.
+* **Thêm, sửa, xóa:** Một phiếu có thể gồm nhiều dòng sản phẩm; khi tạo, hệ thống tính số thùng và thành tiền.
+* **Excel:** Tải file mẫu trống và upload nhiều dòng xuất hàng. Các dòng cùng PO, ngày đặt hàng và khách hàng được nhóm thành một phiếu.
+* **Hiển thị:** Bảng xuất hàng có tìm kiếm, phân trang và định dạng ngày, số tiền.
+* **Chưa triển khai:** Nút In phiếu và Báo cáo doanh thu hiện chỉ hiển thị thông báo, chưa tạo PDF hoặc báo cáo.
+
+### Nhập dữ liệu từ Excel
+
+Ở mỗi màn hình, chọn **Tải file mẫu**, điền dữ liệu từ dòng thứ hai rồi chọn **Upload dữ liệu** hoặc **Tải lên file**. Chỉ hỗ trợ `.xlsx`, tối đa 5 MB; giữ nguyên tên và thứ tự các cột.
+
+| Màn hình | Các cột trong file mẫu |
+| :--- | :--- |
+| Sản phẩm | Mã sản phẩm, Tên sản phẩm, Đơn vị tính, Quy cách, Số lượng/thùng, Trọng lượng |
+| Xuất hàng | Số PO khách hàng, Ngày đặt hàng, Khách hàng, Mã sản phẩm, Số lượng, Số lượng/thùng, Đơn giá |
+
+Với xuất hàng, nhập ngày theo `yyyy-MM-dd`, `dd/MM/yyyy` hoặc định dạng ngày Excel. Mã sản phẩm phải có trong Master sản phẩm. Không được lặp cặp PO + mã sản phẩm trong file hoặc với dữ liệu đã lưu. Server sinh mã phiếu, lấy thông tin sản phẩm và tính số thùng, thành tiền; toàn bộ lần upload được lưu trong một transaction.
+
+**Lưu ý:** Khi tạo hoặc upload, số thùng được làm tròn đến ba chữ số thập phân; khi sửa dòng xuất hàng, code hiện dùng làm tròn lên số nguyên. Hai cách tính này chưa thống nhất.
 
 ---
 
@@ -28,11 +40,11 @@ Hệ thống quản lý danh mục sản phẩm (**Master Product**) và phiếu
 | :--- | :--- | :--- |
 | **Frontend** | **ReactJS 19**, **Vite** | Nền tảng giao diện SPA tốc độ cao |
 | | **Material-UI (MUI)**, **SweetAlert2** | Giao diện người dùng và thông báo trực quan |
-| | **Modular CSS** | Thiết kế đồng bộ theo phong cách Forest Green thanh lịch |
+| | **CSS** | Giao diện và bố cục |
 | **Backend** | **ASP.NET Core WebApi (.NET 10)** | Cung cấp RESTful API hiệu năng cao |
 | | **Dapper** | Micro-ORM tối ưu câu lệnh truy vấn SQL Server |
 | | **EPPlus** | Đọc, ghi và xử lý dữ liệu Excel nhiều sheet |
-| | **QuestPDF & QRCoder** | Tạo tài liệu PDF và sinh mã QR động |
+| | **QuestPDF & QRCoder** | Đã khai báo thư viện; chức năng in phiếu chưa triển khai |
 | **Database** | **Microsoft SQL Server 2022** | Hệ quản trị cơ sở dữ liệu quan hệ |
 
 ---
@@ -64,13 +76,12 @@ HDS/
 │       ├── App.jsx                  # Root Layout điều phối Tab
 │       └── App.css                  # Toàn bộ theme và bảng kiểu dáng
 │
-└── HDS_Intern.xlsx                  # Tài liệu đặc tả yêu cầu & Plan dự án
 ```
 
 ### Luồng xử lý backend
 
-1. **Controller** nhận HTTP request, kiểm tra dữ liệu đầu vào và trả HTTP response.
-2. **Service** xử lý các điều kiện tìm kiếm và gọi Repository tương ứng.
+1. **Controller** nhận HTTP request, gọi Service và trả HTTP response.
+2. **Service** xử lý điều kiện tìm kiếm, đọc và kiểm tra file import, sau đó gọi Repository tương ứng.
 3. **Repository** tạo kết nối, thực thi SQL qua Dapper và trả dữ liệu về Service.
 4. Các Service và Repository được đăng ký bằng `AddScoped` trong `WebApi/Program.cs` và được cung cấp qua constructor injection.
 
@@ -83,7 +94,7 @@ Khi tạo phiếu xuất, `SaleOutRepository` giữ transaction và một số k
 ## ⚙️ Yêu cầu môi trường (Prerequisites)
 
 * **.NET SDK:** Phiên bản 10.0 trở lên
-* **Node.js:** Phiên bản 18+ & **npm**
+* **Node.js:** 20.19+ trong nhánh 20 hoặc 22.12+ & **npm** (theo yêu cầu của Vite 8)
 * **SQL Server:** 2019 / 2022 (khuyến nghị chạy qua Docker)
 
 ---
@@ -91,11 +102,11 @@ Khi tạo phiếu xuất, `SaleOutRepository` giữ transaction và một số k
 ## 🚦 Hướng dẫn cài đặt & Khởi chạy
 
 ### 1. Cấu hình Cơ sở dữ liệu
-Đảm bảo SQL Server đang hoạt động và database `HDS_Intern` đã được cấu hình chuỗi kết nối trong `WebApi/appsettings.Development.json`:
+Đảm bảo SQL Server đang hoạt động, database `HDS` cùng các bảng cần thiết đã được tạo và cấu hình chuỗi kết nối trong `WebApi/appsettings.Development.json`. Repository hiện không kèm script tạo schema:
 
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=127.0.0.1,1433;Database=HDS_Intern;User Id=sa;Password=YourPassword;TrustServerCertificate=True"
+  "DefaultConnection": "Server=127.0.0.1,1433;Database=HDS;User Id=sa;Password=YourPassword;TrustServerCertificate=True"
 }
 ```
 
@@ -137,4 +148,4 @@ npm run dev
 ---
 
 ## 👤 Tác giả
-* **Nguyễn Việt Anh** - HDS Intern Developer
+* **Nguyễn Việt Anh** - HDS Developer

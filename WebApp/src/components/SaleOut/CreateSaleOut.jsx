@@ -63,7 +63,7 @@ export default function CreateSaleOut({ onClose, onCreated }) {
             <div className="edit-form-grid">
               <label>Sản phẩm *<select required value={item.productId} onChange={e => updateLine(index, 'productId', e.target.value)}><option value="">-- Chọn sản phẩm --</option>{products.map(p => <option key={p.id} value={p.id}>{p.productCode} ({p.productName})</option>)}</select></label>
               <label>Đơn vị tính<input value={product?.unit || ''} disabled /></label>
-              {[['quantity', 'Số lượng', '0.001'], ['quantityPerBox', 'Số lượng/thùng', '0.001'], ['price', 'Đơn giá', '0']].map(([field, label, min]) => <label key={field}>{label} *<input required type="number" min={min} max="999999999999999.999" step="0.001" value={item[field]} onChange={e => updateLine(index, field, e.target.value)} /></label>)}
+              {[['quantity', 'Số lượng', '1'], ['quantityPerBox', 'Số lượng/thùng', '1'], ['price', 'Đơn giá', '0']].map(([field, label, min]) => <label key={field}>{label} *<input required type="number" min={min} max="999999999999999.999" step="1" value={item[field]} onChange={e => updateLine(index, field, e.target.value)} /></label>)}
               <label>Số thùng<input value={formatNumber(calculated.boxQuantity, 3)} disabled /></label>
               <label>Thành tiền<input value={formatNumber(calculated.amount, 3)} disabled /></label>
             </div>

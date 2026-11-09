@@ -336,7 +336,7 @@ export default function MasterProductList() {
   }
 
   function handleDownloadProducts() {
-    window.location.href = '/api/products/export'
+    window.location.href = '/api/products/template'
   }
 
   async function handleImportProducts(event) {
@@ -374,11 +374,10 @@ export default function MasterProductList() {
   }
 
   return (
-    <main className="product-page">
+    <main className="product-page wide">
       <header className="page-header">
         <div>
-          <p className="page-context">Danh mục sản phẩm</p>
-          <h1>Master sản phẩm</h1>
+          <h1>Sản phẩm</h1>
           <p className="page-description">Tra cứu và theo dõi thông tin sản phẩm</p>
         </div>
       </header>
@@ -420,7 +419,7 @@ export default function MasterProductList() {
             Thêm mới
           </button>
           <button type="button" onClick={handleDownloadProducts}>
-            Tải dữ liệu
+            Tải file mẫu
           </button>
           <label className={`upload-button ${isImporting ? 'is-disabled' : ''}`}>
             <input
@@ -459,7 +458,7 @@ export default function MasterProductList() {
         )}
 
         <div className="table-container">
-          <table>
+          <table className="wide-table">
             <thead>
               <tr>
                 <th>STT</th>

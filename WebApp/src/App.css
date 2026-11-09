@@ -25,6 +25,7 @@
 .search-form button:hover:not(:disabled) { background: #1f573d; }
 .product-page button:disabled { color: #97a8a0; background: #f5f8f6; border-color: #e0eae3; cursor: not-allowed; }
 .action-buttons { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 18px; border-top: 1px solid #edf2ee; }
+.action-buttons button, .action-buttons .upload-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; line-height: 1.2; text-align: center; }
 .results-panel { overflow: hidden; }
 .results-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 24px 26px; }
 .results-heading p { margin: 6px 0 0; color: #7a8c82; font-size: 13px; }
@@ -181,3 +182,17 @@ tbody td:first-child { color: #87978e; }
 .saleout-line { margin: 1rem 0; border: 1px solid #ccd8d0; border-radius: 8px; }
 .saleout-line select { width: 100%; }
 .saleout-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+
+/* Điều hướng giữa các màn hình */
+.screen-nav { background: #fff; border-bottom: 1px solid #d9e5de; }
+.screen-nav__inner { width: 98%; margin: 0 auto; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.screen-nav__title { color: #18352b; font-size: 15px; font-weight: 700; }
+.screen-nav__buttons { display: flex; gap: 4px; padding: 4px; border: 1px solid #d9e5de; border-radius: 9px; background: #f2f7f3; }
+.screen-nav__button { min-height: 42px; padding: 0 20px; border: 0; border-radius: 6px; background: transparent; color: #345b47; font: inherit; font-weight: 600; cursor: pointer; }
+.screen-nav__button:hover:not(.is-active) { background: #e3eee6; }
+.screen-nav__button.is-active { background: #286b4b; color: #fff; }
+.screen-nav__button:focus-visible { outline: 3px solid #9acbb0; outline-offset: 2px; }
+@media (max-width: 700px) {
+  .screen-nav__inner { align-items: stretch; flex-direction: column; gap: 12px; padding: 16px; }
+  .screen-nav__button { flex: 1; padding: 0 10px; }
+}

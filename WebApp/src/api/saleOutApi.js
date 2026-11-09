@@ -37,3 +37,26 @@ export async function createSaleOut(payload) {
   if (!res.ok) throw new Error(data.message || Object.values(data.errors || {}).flat().join(' ') || 'Không thể tạo phiếu xuất hàng.')
   return data
 }
+
+async function changeSaleOut(id, method, payload) {
+  const res = await fetch(`/api/saleouts/${encodeURIComponent(id)}`, {
+    method,
+    ...(payload && { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.message || Object.values(data.errors || {}).flat().join(' ') || 'Không thể cập nhật xuất hàng.')
+  }
+}
+
+export const updateSaleOut = (id, payload) => changeSaleOut(id, 'PUT', payload)
+export const deleteSaleOut = (id) => changeSaleOut(id, 'DELETE')
+
+export async function importSaleOuts(file) {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch('/api/saleouts/import', { method: 'POST', body })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.message || 'Không thể tải lên dữ liệu xuất hàng.')
+  return data
+}

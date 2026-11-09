@@ -78,6 +78,14 @@ public class SaleOutRepository
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        await AcquireCreateLock(connection, transaction);
+        var saleOutNo = await CreateInTransaction(connection, transaction, request);
+        await transaction.CommitAsync();
+        return saleOutNo;
+    }
+
+    private static async Task AcquireCreateLock(SqlConnection connection, SqlTransaction transaction)
+    {
         var lockResult = await connection.ExecuteScalarAsync<int>("""
             DECLARE @result int;
             EXEC @result = sp_getapplock @Resource = 'SaleOutCreate', @LockMode = 'Exclusive',
@@ -86,6 +94,10 @@ public class SaleOutRepository
             """, transaction: transaction);
         if (lockResult < 0) throw new InvalidOperationException("Không thể tạo phiếu lúc này, vui lòng thử lại.");
 
+    }
+
+    private static async Task<string> CreateInTransaction(SqlConnection connection, SqlTransaction transaction, CreateSaleOutRequest request)
+    {
         var po = request.CustomerPoNo.Trim();
         var products = (await connection.QueryAsync<WebApi.Models.Products.Product>(
             "SELECT Id, ProductCode FROM dbo.MasterProduct WHERE Id IN @Ids", new { Ids = request.Items.Select(x => x.ProductId) }, transaction)).ToDictionary(x => x.Id, x => x.ProductCode ?? "");
@@ -113,7 +125,75 @@ public class SaleOutRepository
                 VALUES (@Id, @SaleOutNo, @CustomerPoNo, @OrderDate, @CustomerName, @ProductId, @Quantity, @Price, @Amount, @QuantityPerBox, @BoxQuantity)
                 """, new { Id = Guid.NewGuid(), SaleOutNo = saleOutNo, CustomerPoNo = po, OrderDate = orderDate, CustomerName = request.CustomerName.Trim(), item.ProductId, item.Quantity, item.Price, Amount = decimal.Round(item.Quantity * item.Price, 3, MidpointRounding.AwayFromZero), item.QuantityPerBox, BoxQuantity = decimal.Round(item.Quantity / item.QuantityPerBox, 3, MidpointRounding.AwayFromZero) }, transaction);
         }
-        await transaction.CommitAsync();
         return saleOutNo;
     }
+
+    public async Task<int> ImportSaleOutsAsync(IReadOnlyList<IReadOnlyList<ImportSaleOutRow>> groups)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        await AcquireCreateLock(connection, transaction);
+        var rows = groups.SelectMany(group => group).ToList();
+        var codes = rows.Select(x => x.ProductCode).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var products = (await connection.QueryAsync<WebApi.Models.Products.Product>(
+            "SELECT Id, ProductCode FROM dbo.MasterProduct WHERE ProductCode IN @Codes", new { Codes = codes }, transaction))
+            .ToDictionary(x => x.ProductCode!, x => x.Id, StringComparer.OrdinalIgnoreCase);
+        foreach (var row in rows)
+            if (!products.ContainsKey(row.ProductCode)) throw new ArgumentException($"Dòng {row.RowNumber}: Mã sản phẩm {row.ProductCode} không tồn tại.");
+        foreach (var group in groups)
+        {
+            var first = group.First();
+            var request = new CreateSaleOutRequest { CustomerPoNo = first.CustomerPoNo, CustomerName = first.CustomerName, OrderDate = first.OrderDate,
+                Items = group.Select(x => new CreateSaleOutLine { ProductId = products[x.ProductCode], Quantity = x.Quantity, QuantityPerBox = x.QuantityPerBox, Price = x.Price }).ToList() };
+            await CreateInTransaction(connection, transaction, request);
+        }
+        await transaction.CommitAsync();
+        return rows.Count;
+    }
+
+    public async Task<bool> UpdateSaleOutAsync(Guid id, UpdateSaleOutRequest request)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        var affected = await connection.ExecuteAsync("""
+            UPDATE dbo.SaleOut
+            SET Quantity = @Quantity, QuantityPerBox = @QuantityPerBox, Price = @Price,
+                BoxQuantity = @BoxQuantity, Amount = @Amount
+            WHERE Id = @Id
+            """, new { Id = id, request.Quantity, request.QuantityPerBox, request.Price,
+                BoxQuantity = decimal.Ceiling(request.Quantity / request.QuantityPerBox),
+                Amount = decimal.Round(request.Quantity * request.Price, 3, MidpointRounding.AwayFromZero) });
+        return affected > 0;
+    }
+
+    public async Task<bool> DeleteSaleOutAsync(Guid id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        return await connection.ExecuteAsync("DELETE FROM dbo.SaleOut WHERE Id = @Id", new { Id = id }) > 0;
+    }
+
+    public async Task<IEnumerable<SaleOutItemDto>> GetAllSaleOutsAsync()
+    {
+        const string sql = """
+            SELECT
+                so.SaleOutNo,
+                so.CustomerPoNo,
+                so.OrderDate,
+                so.CustomerName,
+                mp.ProductCode,
+                mp.ProductName,
+                mp.Unit,
+                so.Quantity,
+                so.QuantityPerBox,
+                so.BoxQuantity,
+                so.Price,
+                so.Amount
+            FROM dbo.SaleOut so
+            INNER JOIN dbo.MasterProduct mp ON so.ProductId = mp.Id
+            ORDER BY so.OrderDate DESC, so.SaleOutNo DESC, so.Id;
+            """;
+
+        await using var connection = new SqlConnection(_connectionString);
+        return await connection.QueryAsync<SaleOutItemDto>(sql);
+}
 }
