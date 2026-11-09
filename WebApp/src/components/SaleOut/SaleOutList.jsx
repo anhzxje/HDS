@@ -1,3 +1,4 @@
+import CreateSaleOut from './CreateSaleOut'
 import { useEffect, useState } from 'react'
 import { fetchSaleOuts } from '../../api/saleOutApi'
 import { formatOrderDate, formatNumber, formatCurrency } from '../../utils/formatters'
@@ -14,6 +15,9 @@ const SEARCH_FIELDS = [
 ]
 
 export default function SaleOutList() {
+  const [showCreate, setShowCreate] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [revision, setRevision] = useState(0)
   const [saleOuts, setSaleOuts] = useState([])
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(1)
@@ -61,7 +65,7 @@ export default function SaleOutList() {
     loadData()
 
     return () => controller.abort()
-  }, [page, pageSize, appliedSearch])
+  }, [page, pageSize, appliedSearch, revision])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -113,7 +117,7 @@ export default function SaleOutList() {
         </form>
 
         <div className="action-buttons">
-          <button type="button" onClick={() => window.alert('Chức năng Thêm mới (Task 46.2)')}>
+          <button type="button" onClick={() => setShowCreate(true)}>
             Thêm mới
           </button>
           <button type="button" onClick={() => window.alert('Chức năng Tải file mẫu (Task 46.4)')}>
@@ -130,6 +134,9 @@ export default function SaleOutList() {
           </button>
         </div>
       </section>
+
+      {notice && <p role="status">{notice}</p>}
+      {showCreate && <CreateSaleOut onClose={() => setShowCreate(false)} onCreated={(number) => { setShowCreate(false); setNotice(`Đã tạo phiếu ${number}.`); setPage(1); setRevision(value => value + 1) }} />}
 
       <section className="results-panel" aria-label="Danh sách xuất hàng">
         <div className="results-heading">

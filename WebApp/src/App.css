@@ -176,3 +176,8 @@ tbody td:first-child { color: #87978e; }
   font-size: 12px;
   border-radius: 4px;
 }
+
+.saleout-modal { width: min(960px, 95vw); max-height: 90vh; overflow-y: auto; }
+.saleout-line { margin: 1rem 0; border: 1px solid #ccd8d0; border-radius: 8px; }
+.saleout-line select { width: 100%; }
+.saleout-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }

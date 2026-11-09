@@ -22,3 +22,18 @@ export async function fetchSaleOuts({ field, keyword, page = 1, pageSize = 50, s
   return await res.json()
 }
 
+
+export async function fetchProductChoices(signal) {
+  const res = await fetch('/api/products/choices', { signal })
+  if (!res.ok) throw new Error('Không thể tải danh sách sản phẩm.')
+  return res.json()
+}
+
+export async function createSaleOut(payload) {
+  const res = await fetch('/api/saleouts', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.message || Object.values(data.errors || {}).flat().join(' ') || 'Không thể tạo phiếu xuất hàng.')
+  return data
+}

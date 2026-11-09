@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services;
+using WebApi.Models.SaleOuts;
 
 namespace WebApi.Controllers;
 
@@ -58,4 +59,23 @@ public class SaleOutsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+    [HttpPost]
+    public async Task<IActionResult> CreateSaleOut([FromBody] CreateSaleOutRequest request)
+    {
+        try
+        {
+            var saleOutNo = await _saleOutService.CreateSaleOutAsync(request);
+            return StatusCode(StatusCodes.Status201Created, new { saleOutNo });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    
 }

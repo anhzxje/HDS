@@ -1,21 +1,15 @@
-using Dapper;
-using Microsoft.Data.SqlClient;
+using WebApi.Repositories;
 
 namespace WebApi.Services;
 
 public class DatabaseService
 {
-    private readonly string _connectionString;
+    private readonly DatabaseRepository _databaseRepository;
 
-    public DatabaseService(IConfiguration configuration)
+    public DatabaseService(DatabaseRepository databaseRepository)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Chưa cấu hình DefaultConnection.");
+        _databaseRepository = databaseRepository;
     }
 
-    public async Task<int> CheckConnectionAsync()
-    {
-        await using var connection = new SqlConnection(_connectionString);
-        return await connection.ExecuteScalarAsync<int>("SELECT 1");
-    }
+    public Task<int> CheckConnectionAsync() => _databaseRepository.CheckConnectionAsync();
 }

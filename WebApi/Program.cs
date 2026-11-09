@@ -1,4 +1,5 @@
 using WebApi.Services;
+using WebApi.Repositories;
 using OfficeOpenXml;
 
 // Cấu hình cho trường hợp sử dụng cá nhân phi thương mại.
@@ -8,7 +9,10 @@ ExcelPackage.License.SetNonCommercialPersonal("Anhzxje");
 var builder = WebApplication.CreateBuilder(args);
 
 // Mỗi yêu cầu HTTP dùng một instance Service riêng.
+builder.Services.AddScoped<DatabaseRepository>();
+builder.Services.AddScoped<SaleOutRepository>();
 builder.Services.AddScoped<DatabaseService>();
+builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<SaleOutService>();
 

@@ -61,6 +61,9 @@ public class ProductsController : ControllerBase
         }
     }
 
+    [HttpGet("choices")]
+    public async Task<IActionResult> GetProductChoices() => Ok(await _productService.GetAllProductsAsync());
+
     // PUT: chỉ cập nhật các trường trong UpdateProductRequest; mã và tên được giữ nguyên.
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateProduct(
