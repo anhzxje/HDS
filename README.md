@@ -119,7 +119,7 @@ Ví dụ: `GET /api/products?page=1&pageSize=20` đi qua `ProductsController.Get
 ## ⚙️ Yêu cầu môi trường (Prerequisites)
 
 * **.NET SDK:** Phiên bản 10.0 trở lên
-* **Node.js:** 20.19+ trong nhánh 20 hoặc 22.12+ & **npm** (theo yêu cầu của Vite 8)
+* **Node.js:** 22.22.2+ trong nhánh 22, 24.15+ trong nhánh 24 hoặc 26+ & **npm** (bao gồm yêu cầu của bộ test jsdom)
 * **SQL Server:** 2019 / 2022 (khuyến nghị chạy qua Docker)
 
 ---
@@ -161,7 +161,7 @@ npm run dev
 ```
 > Mở trình duyệt truy cập: `http://localhost:5173`. Vite chuyển các yêu cầu `/api` tới `http://localhost:5252`; nếu đổi địa chỉ backend, cập nhật `WebApp/vite.config.js`.
 
-Kiểm tra frontend bằng `npm run lint` và tạo bản build bằng `npm run build` trong thư mục `WebApp`.
+Kiểm tra frontend bằng `npm run lint`, `npm test` và tạo bản build bằng `npm run build` trong thư mục `WebApp`.
 
 ---
 
@@ -201,16 +201,21 @@ dotnet test WebApi.Tests/WebApi.Tests.csproj
 cd WebApp
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 
-`WebApi.Tests` kiểm tra quy tắc làm tròn, giới hạn số, mã phiếu, đọc/validate Excel và cấu trúc lỗi HTTP. Các test này không cần SQL Server. Sau khi stack Docker chạy, kiểm tra thêm database, ràng buộc SQL, cấp mã đồng thời, PDF và Excel qua Nginx:
+`WebApi.Tests` kiểm tra quy tắc làm tròn, giới hạn số, mã phiếu, đọc/validate Excel và cấu trúc lỗi HTTP. Các test này không cần SQL Server.
+
+Frontend dùng Vitest, React Testing Library và jsdom. Chạy `npm test` trong `WebApp` để kiểm tra validation số, dữ liệu form tạo/sửa, hook lưu form, HTTP/multipart import và tương tác hộp thoại upload (đang tải, báo lỗi, thử lại, hủy). Dùng `npm run test:watch` khi phát triển. API được mock trong test frontend; đọc nội dung Excel vẫn do backend kiểm tra. Modal dialog được mô phỏng trong jsdom, nên các test này không thay thế kiểm thử trình duyệt thật.
+
+Sau khi stack Docker chạy, kiểm tra thêm database, ràng buộc SQL, cấp mã đồng thời, PDF và Excel qua Nginx:
 
 ```bash
 python3 scripts/smoke-test.py http://localhost:8080
 ```
 
-Smoke test tạo dữ liệu có mã riêng và xóa các dòng vừa tạo khi kết thúc. GitHub Actions chạy build/test .NET, lint/build frontend và một job build/chạy stack Docker, kiểm tra khả năng chạy lại SQL init rồi chạy smoke test.
+Smoke test tạo dữ liệu có mã riêng và xóa các dòng vừa tạo khi kết thúc. GitHub Actions chạy build/test .NET, lint/test/build frontend và một job build/chạy stack Docker, kiểm tra khả năng chạy lại SQL init rồi chạy smoke test.
 
 ## Quy ước xử lý lỗi API
 
