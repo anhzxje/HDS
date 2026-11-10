@@ -76,6 +76,17 @@ tbody td:first-child { color: #87978e; }
     margin-top: 0;
   }
 
+.print-dialog { width: min(100%, 460px); box-sizing: border-box; padding: 28px; box-shadow: 0 20px 60px rgb(19 45 32 / 20%); }
+.print-dialog h2 { margin: 0; color: #18352b; font-size: 22px; }
+.print-dialog-description { margin: 8px 0 24px; color: #6c8076; font-size: 14px; }
+.print-dialog-label { display: block; margin-bottom: 8px; color: #344f40; font-size: 14px; font-weight: 600; }
+.print-dialog-label span { color: #b23838; }
+.print-dialog select { width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbdad1; border-radius: 6px; background: #fff; color: #263f32; font: inherit; }
+.print-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #edf2ee; }
+.product-page .print-dialog .print-dialog-submit { border-color: #286b4b; background: #286b4b; color: #fff; }
+.product-page .print-dialog .print-dialog-submit:hover:not(:disabled) { background: #1f573d; }
+.product-page .print-dialog .print-dialog-submit:disabled { border-color: #e0eae3; background: #f5f8f6; color: #97a8a0; }
+
   .edit-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -195,4 +206,91 @@ tbody td:first-child { color: #87978e; }
 @media (max-width: 700px) {
   .screen-nav__inner { align-items: stretch; flex-direction: column; gap: 12px; padding: 16px; }
   .screen-nav__button { flex: 1; padding: 0 10px; }
+}
+
+.upload-dialog { width: min(100% - 32px, 420px); box-sizing: border-box; border: 0; }
+.upload-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.upload-file-label { display: block; width: fit-content; margin: 24px auto 0; padding: 10px 28px; border: 1px solid #999; border-radius: 4px; cursor: pointer; }
+.upload-file-label:has(+ input:focus-visible) { outline: 2px solid #276b37; outline-offset: 2px; }
+.upload-file-name { text-align: center; overflow-wrap: anywhere; color: #555; }
+
+.report-dialog {
+  width: min(100%, 520px);
+  box-sizing: border-box;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgb(19 45 32 / 20%);
+}
+
+.report-dialog h2 {
+  margin: 0;
+  color: #18352b;
+  font-size: 22px;
+}
+
+.report-dialog-description {
+  margin: 8px 0 24px;
+  color: #6c8076;
+  font-size: 14px;
+}
+
+.report-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.report-date-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #344f40;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.report-required {
+  color: #b23838;
+}
+
+.report-date-fields input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #cbdad1;
+  border-radius: 6px;
+  background: #fff;
+  color: #263f32;
+  font: inherit;
+}
+
+.report-dialog-error {
+  margin: 12px 0 0;
+  color: #b23838;
+  font-size: 14px;
+}
+
+.report-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #edf2ee;
+}
+
+.product-page .report-dialog .report-dialog-submit {
+  border-color: #286b4b;
+  background: #286b4b;
+  color: #fff;
+}
+
+.product-page .report-dialog .report-dialog-submit:hover {
+  background: #1f573d;
+}
+
+@media (max-width: 500px) {
+  .report-date-fields {
+    grid-template-columns: 1fr;
+  }
 }

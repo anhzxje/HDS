@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import TabNav from './components/Navigation/TabNav'
-import MasterProductList from './components/MasterProduct/MasterProductList'
+import ProductList from './components/Product/ProductList'
 import SaleOutList from './components/SaleOut/SaleOutList'
 
 function App() {
@@ -13,7 +13,7 @@ function App() {
       <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* RENDER MÀN HÌNH TƯƠNG ỨNG */}
-      {activeTab === 'saleOut' ? <SaleOutList /> : <MasterProductList />}
+      {activeTab === 'saleOut' ? <SaleOutList /> : <ProductList />}
     </div>
   )
 }

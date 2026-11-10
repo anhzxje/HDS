@@ -9,10 +9,12 @@ namespace WebApi.Controllers;
 public class DatabaseController : ControllerBase
 {
     private readonly DatabaseService _databaseService;
+    private readonly ILogger<DatabaseController> _logger;
 
-    public DatabaseController(DatabaseService databaseService)
+    public DatabaseController(DatabaseService databaseService, ILogger<DatabaseController> logger)
     {
         _databaseService = databaseService;
+        _logger = logger;
     }
 
     // GET /api/database/check: chạy truy vấn kiểm tra thông qua DatabaseService.
@@ -28,6 +30,7 @@ public class DatabaseController : ControllerBase
         // Trả mã lỗi SQL để hỗ trợ xác định nguyên nhân kết nối thất bại.
         catch (Microsoft.Data.SqlClient.SqlException ex)
         {
+            _logger.LogError(ex, "Không kiểm tra được kết nối database");
             return StatusCode(500, new
             {
                 message = "Không kết nối được database.",

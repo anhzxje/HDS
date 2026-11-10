@@ -1,3 +1,4 @@
+using WebApi.Models.Validation;
 using System.ComponentModel.DataAnnotations;
 
 namespace WebApi.Models.Products;
@@ -14,10 +15,10 @@ public class UpdateProductRequest
     public string? Specification { get; set; }
 
     [Required(ErrorMessage = "Số lượng/thùng không được để trống.")]
-    [Range(0, double.MaxValue, ErrorMessage = "Số lượng/thùng phải là số dương.")]
+    [DecimalValue]
     public decimal? QuantityPerBox { get; set; }
 
     [Required(ErrorMessage = "Trọng lượng không được để trống.")]
-    [Range(0, double.MaxValue, ErrorMessage = "Trọng lượng phải là số dương.")]
+    [DecimalValue]
     public decimal? ProductWeight { get; set; }
 }

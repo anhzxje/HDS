@@ -1,5 +1,5 @@
-const tabs = [
-  { key: 'masterProduct', label: 'Sản phẩm' },
+const TABS = [
+  { key: 'product', label: 'Sản phẩm' },
   { key: 'saleOut', label: 'Xuất hàng' },
 ]
 
@@ -9,7 +9,7 @@ export default function TabNav({ activeTab, onTabChange }) {
       <div className="screen-nav__inner">
         <span className="screen-nav__title">Quản lý bán hàng & Kho</span>
         <div className="screen-nav__buttons">
-          {tabs.map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"

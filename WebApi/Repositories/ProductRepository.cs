@@ -16,7 +16,7 @@ public class ProductRepository
     }
 
     // columnName đã được ProductService đối chiếu với danh sách trường cho phép.
-    internal async Task<(IEnumerable<Product> Items, int TotalCount)> GetProductsAsync(
+    internal async Task<(IEnumerable<ProductItemDto> Items, int TotalCount)> GetProductsAsync(
         string? columnName, string? keyword, int page, int pageSize)
     {
         string whereClause = "";
@@ -54,12 +54,12 @@ public class ProductRepository
         using var result = await connection.QueryMultipleAsync(sql, parameters);
 
         var totalCount = await result.ReadSingleAsync<int>();
-        var products = await result.ReadAsync<Product>();
+        var products = await result.ReadAsync<ProductItemDto>();
         return (products, totalCount);
     }
     public async Task<bool> UpdateProductAsync(Guid id, UpdateProductRequest request)
     {
-        const string sql = """
+        const string SQL = """
             UPDATE dbo.MasterProduct
             SET Unit = @Unit,
                 Specification = @Specification,
@@ -70,7 +70,7 @@ public class ProductRepository
 
         await using var connection = new SqlConnection(_connectionString);
 
-        var affectedRows = await connection.ExecuteAsync(sql, new
+        var affectedRows = await connection.ExecuteAsync(SQL, new
         {
             Id = id,
             Unit = request.Unit?.Trim(),
@@ -84,21 +84,21 @@ public class ProductRepository
 
     public async Task<bool> DeleteProductAsync(Guid id)
     {
-        const string sql = """
+        const string SQL = """
             DELETE FROM dbo.MasterProduct
             WHERE Id = @Id;
             """;
 
         await using var connection = new SqlConnection(_connectionString);
 
-        var affectedRows = await connection.ExecuteAsync(sql, new { Id = id });
+        var affectedRows = await connection.ExecuteAsync(SQL, new { Id = id });
 
         return affectedRows > 0;
     }
 
     public async Task<Guid> CreateProductAsync(CreateProductRequest request)
     {
-        const string sql = """
+        const string SQL = """
             INSERT INTO dbo.MasterProduct
                 (Id, ProductCode, ProductName, Unit, Specification, QuantityPerBox, ProductWeight)
             VALUES
@@ -109,7 +109,7 @@ public class ProductRepository
 
         var newId = Guid.NewGuid();
 
-        await connection.ExecuteAsync(sql, new
+        await connection.ExecuteAsync(SQL, new
         {
             Id = newId,
             ProductCode = request.ProductCode?.Trim(),
@@ -123,9 +123,21 @@ public class ProductRepository
         return newId;
     }
 
-    public async Task<IEnumerable<Product>> GetAllProductsAsync()
+    public async Task<IEnumerable<ProductChoice>> GetProductChoicesAsync()
     {
-        const string sql = """
+        const string SQL = """
+            SELECT Id, ProductCode, ProductName, Unit, QuantityPerBox
+            FROM dbo.MasterProduct
+            ORDER BY ProductCode, Id;
+            """;
+
+        await using var connection = new SqlConnection(_connectionString);
+        return await connection.QueryAsync<ProductChoice>(SQL);
+    }
+
+    public async Task<IEnumerable<ProductItemDto>> GetAllProductsAsync()
+    {
+        const string SQL = """
             SELECT
                 Id,
                 ProductCode,
@@ -140,13 +152,13 @@ public class ProductRepository
 
         await using var connection = new SqlConnection(_connectionString);
 
-        return await connection.QueryAsync<Product>(sql);
+        return await connection.QueryAsync<ProductItemDto>(SQL);
     }
 
     public async Task ImportProductsAsync(
         IReadOnlyList<ImportProductRow> products)
     {
-        const string sql = """
+        const string SQL = """
             INSERT INTO dbo.MasterProduct
                 (Id, ProductCode, ProductName, Unit, Specification,
                 QuantityPerBox, ProductWeight)
@@ -167,7 +179,7 @@ public class ProductRepository
             try
             {
                 await connection.ExecuteAsync(
-                    sql,
+                    SQL,
                     new
                     {
                         Id = Guid.NewGuid(),
@@ -180,15 +192,11 @@ public class ProductRepository
                     },
                     transaction);
             }
-            catch (SqlException ex) when (
-                (ex.Number == 2601 || ex.Number == 2627)
-                && ex.Message.Contains(
-                    "UX_MasterProduct_ProductCode",
-                    StringComparison.OrdinalIgnoreCase))
+            catch (SqlException ex) when (SqlServerErrors.IsDuplicateProductCode(ex))
             {
                 throw new DuplicateProductCodeException(
                     item.RowNumber,
-                    product.ProductCode!.Trim());
+                    product.ProductCode!.Trim(), ex);
             }
         }
 

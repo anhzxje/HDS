@@ -1,77 +1,26 @@
-/**
- * Module API cho nghiệp vụ Master Sản phẩm (MasterProduct)
- */
+import { buildPageQuery, requestJson, sendJson, uploadFile } from './http'
 
-export async function fetchProducts({ field, keyword, page = 1, pageSize = 20, signal }) {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    pageSize: pageSize.toString(),
-  })
-
-  if (keyword && keyword.trim()) {
-    params.set('field', field)
-    params.set('keyword', keyword.trim())
-  }
-
-  const res = await fetch(`/api/products?${params.toString()}`, { signal })
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}))
-    throw new Error(errData.message || 'Không thể tải danh sách sản phẩm.')
-  }
-
-  return await res.json()
+export function fetchProducts({ field, keyword, page = 1, pageSize = 20, signal }) {
+  const query = buildPageQuery({ field, keyword, page, pageSize })
+  return requestJson(`/api/products?${query}`, { signal }, 'Không thể tải danh sách sản phẩm.')
 }
 
-export async function createProduct(payload) {
-  const res = await fetch('/api/products', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(data.message || 'Không thể tạo sản phẩm.')
-  }
-
-  return data
+export function createProduct(payload) {
+  return sendJson('/api/products', 'POST', payload, 'Không thể tạo sản phẩm.')
 }
 
-export async function updateProduct(id, payload) {
-  const res = await fetch(`/api/products/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.message || 'Không thể cập nhật sản phẩm.')
-  }
+export function updateProduct(id, payload) {
+  return sendJson(`/api/products/${encodeURIComponent(id)}`, 'PUT', payload, 'Không thể cập nhật sản phẩm.')
 }
 
-export async function deleteProduct(id) {
-  const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.message || 'Không thể xoá sản phẩm.')
-  }
+export function deleteProduct(id) {
+  return sendJson(`/api/products/${encodeURIComponent(id)}`, 'DELETE', undefined, 'Không thể xoá sản phẩm.')
 }
 
-export async function importProductsExcel(file) {
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const res = await fetch('/api/products/import', {
-    method: 'POST',
-    body: formData,
-  })
-
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(data.message || 'Không thể upload dữ liệu.')
-  }
-
-  return data
+export function importProducts(file) {
+  return uploadFile('/api/products/import', file, 'Không thể upload dữ liệu.')
 }
 
+export function fetchProductChoices(signal) {
+  return requestJson('/api/products/choices', { signal }, 'Không thể tải danh sách sản phẩm.')
+}

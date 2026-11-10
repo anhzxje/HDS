@@ -1,62 +1,26 @@
-/**
- * Module API cho nghiệp vụ Xuất hàng (SaleOut)
- */
+import { buildPageQuery, requestJson, sendJson, uploadFile } from './http'
 
-export async function fetchSaleOuts({ field, keyword, page = 1, pageSize = 50, signal }) {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    pageSize: pageSize.toString(),
-  })
-
-  if (keyword && keyword.trim()) {
-    params.set('field', field)
-    params.set('keyword', keyword.trim())
-  }
-
-  const res = await fetch(`/api/saleouts?${params.toString()}`, { signal })
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}))
-    throw new Error(errData.message || 'Lỗi khi tải danh sách xuất hàng.')
-  }
-
-  return await res.json()
+export function fetchSaleOuts({ field, keyword, page = 1, pageSize = 50, signal }) {
+  const query = buildPageQuery({ field, keyword, page, pageSize })
+  return requestJson(`/api/saleouts?${query}`, { signal }, 'Không thể tải danh sách xuất hàng.')
 }
 
-
-export async function fetchProductChoices(signal) {
-  const res = await fetch('/api/products/choices', { signal })
-  if (!res.ok) throw new Error('Không thể tải danh sách sản phẩm.')
-  return res.json()
+export function createSaleOut(payload) {
+  return sendJson('/api/saleouts', 'POST', payload, 'Không thể tạo phiếu xuất hàng.')
 }
 
-export async function createSaleOut(payload) {
-  const res = await fetch('/api/saleouts', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.message || Object.values(data.errors || {}).flat().join(' ') || 'Không thể tạo phiếu xuất hàng.')
-  return data
+export function updateSaleOut(id, payload) {
+  return sendJson(`/api/saleouts/${encodeURIComponent(id)}`, 'PUT', payload, 'Không thể cập nhật xuất hàng.')
 }
 
-async function changeSaleOut(id, method, payload) {
-  const res = await fetch(`/api/saleouts/${encodeURIComponent(id)}`, {
-    method,
-    ...(payload && { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
-  })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.message || Object.values(data.errors || {}).flat().join(' ') || 'Không thể cập nhật xuất hàng.')
-  }
+export function deleteSaleOut(id) {
+  return sendJson(`/api/saleouts/${encodeURIComponent(id)}`, 'DELETE', undefined, 'Không thể xóa xuất hàng.')
 }
 
-export const updateSaleOut = (id, payload) => changeSaleOut(id, 'PUT', payload)
-export const deleteSaleOut = (id) => changeSaleOut(id, 'DELETE')
+export function importSaleOuts(file) {
+  return uploadFile('/api/saleouts/import', file, 'Không thể tải lên dữ liệu xuất hàng.')
+}
 
-export async function importSaleOuts(file) {
-  const body = new FormData()
-  body.append('file', file)
-  const res = await fetch('/api/saleouts/import', { method: 'POST', body })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.message || 'Không thể tải lên dữ liệu xuất hàng.')
-  return data
+export function fetchSaleOutNumbers(signal) {
+  return requestJson('/api/saleouts/choices', { signal }, 'Không thể tải danh sách mã số phiếu.')
 }

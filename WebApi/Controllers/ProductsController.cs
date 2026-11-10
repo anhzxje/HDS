@@ -1,25 +1,25 @@
+using WebApi.Repositories;
+using WebApi.Services.Imports;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services;
-using WebApi.Models;
 using Microsoft.Data.SqlClient;
-using OfficeOpenXml;
-using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using WebApi.Models.Products;
 using WebApi.Models.Exceptions;
 
 namespace WebApi.Controllers;
 
-// Nhận yêu cầu từ giao diện và chuyển công việc truy cập dữ liệu cho DatabaseService.
+// Nhận HTTP request và chuyển nghiệp vụ sản phẩm cho ProductService.
 [ApiController]
 [Route("api/products")]
 public class ProductsController : ControllerBase
 {
     private readonly ProductService _productService;
+    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(ProductService productService)
+    public ProductsController(ProductService productService, ILogger<ProductsController> logger)
     {
         _productService = productService;
+        _logger = logger;
     }
 
     // GET: trả danh sách theo điều kiện tìm kiếm và thông tin phân trang.
@@ -57,12 +57,13 @@ public class ProductsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
+            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
             return BadRequest(new { message = ex.Message });
         }
     }
 
     [HttpGet("choices")]
-    public async Task<IActionResult> GetProductChoices() => Ok(await _productService.GetAllProductsAsync());
+    public async Task<IActionResult> GetProductChoices() => Ok(await _productService.GetProductChoicesAsync());
 
     // PUT: chỉ cập nhật các trường trong UpdateProductRequest; mã và tên được giữ nguyên.
     [HttpPut("{id:guid}")]
@@ -99,8 +100,9 @@ public class ProductsController : ControllerBase
             return NoContent();
         }
         // SQL Server báo lỗi 547 khi một ràng buộc dữ liệu ngăn thao tác xóa.
-        catch (SqlException ex) when (ex.Number == 547)
+        catch (SqlException ex) when (ex.Number == SqlServerErrors.FOREIGN_KEY_CONFLICT)
         {
+            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
             return Conflict(new
             {
                 message = "Không thể xoá sản phẩm vì đang có dữ liệu liên quan."
@@ -116,16 +118,16 @@ public class ProductsController : ControllerBase
         try
         {
             var newId = await _productService.CreateProductAsync(request);
-            
-            return StatusCode(StatusCodes.Status201Created, new { 
-                newId, 
-                message = "Tạo sản phẩm thành công." });
-        } 
-        catch (SqlException ex) when (
-            (ex.Number == 2627 || ex.Number == 2601) 
-            && ex.Message.Contains("UX_MasterProduct_ProductCode", 
-            StringComparison.OrdinalIgnoreCase))
+
+            return StatusCode(StatusCodes.Status201Created, new
+            {
+                newId,
+                message = "Tạo sản phẩm thành công."
+            });
+        }
+        catch (SqlException ex) when (SqlServerErrors.IsDuplicateProductCode(ex))
         {
+            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
             return Conflict(new
             {
                 message = $"Mã sản phẩm {request.ProductCode?.Trim()} đã tồn tại."
@@ -140,63 +142,14 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/export
     [HttpGet("export")]
-    public async Task<IActionResult> ExportProducts()
-    {
-        // 1. Lấy toàn bộ sản phẩm từ database.
-        var products = await _productService.GetAllProductsAsync();
-
-        // 2. Tạo file Excel và sheet.
-        using var package = new ExcelPackage();
-        var worksheet = package.Workbook.Worksheets.Add("San pham");
-
-        // 3. Ghi tiêu đề tại hàng 1.
-        string[] headers =
-        [
-            "Mã sản phẩm",
-            "Tên sản phẩm",
-            "Đơn vị tính",
-            "Quy cách",
-            "Số lượng/thùng",
-            "Trọng lượng"
-        ];
-
-        for (var i = 0; i < headers.Length; i++)
-        {
-            worksheet.Cells[1, i + 1].Value = headers[i];
-        }
-
-        // 4. Ghi sản phẩm, bắt đầu từ hàng 2.
-        var row = 2;
-
-        foreach (var product in products)
-        {
-            worksheet.Cells[row, 1].Value = product.ProductCode;
-            worksheet.Cells[row, 2].Value = product.ProductName;
-            worksheet.Cells[row, 3].Value = product.Unit;
-            worksheet.Cells[row, 4].Value = product.Specification;
-            worksheet.Cells[row, 5].Value = product.QuantityPerBox;
-            worksheet.Cells[row, 6].Value = product.ProductWeight;
-
-            row++;
-        }
-
-        // 5. Định dạng hàng tiêu đề và độ rộng cột.
-        var headerRange = worksheet.Cells[1, 1, 1, headers.Length];
-        headerRange.Style.Font.Bold = true;
-
-        // Bao gồm cả tiêu đề và dữ liệu khi tính độ rộng.
-        worksheet.Cells[1, 1, row - 1, headers.Length].AutoFitColumns();
-
-        // 6. Trả file về trình duyệt.
-        return File(
-            package.GetAsByteArray(),
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "danh-sach-san-pham.xlsx");
-    }
+    public async Task<IActionResult> ExportProducts() => File(
+        await _productService.ExportProductsAsync(),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "danh-sach-san-pham.xlsx");
 
     // POST: api/products/import
     [HttpPost("import")]
-    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestSizeLimit(ExcelImport.MAX_FILE_SIZE)]
     public async Task<IActionResult> ImportProducts([FromForm] IFormFile? file)
     {
         try
@@ -204,9 +157,14 @@ public class ProductsController : ControllerBase
             var count = await _productService.ImportProductsAsync(file);
             return Ok(new { message = $"Đã nhập thành công {count} sản phẩm.", importedCount = count });
         }
-        catch (ImportValidationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (ImportValidationException ex)
+        {
+            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
+            return BadRequest(new { message = ex.Message });
+        }
         catch (DuplicateProductCodeException ex)
         {
+            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
             return Conflict(new { message = ex.Message, row = ex.RowNumber, productCode = ex.ProductCode });
         }
     }
