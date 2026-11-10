@@ -30,3 +30,11 @@ VIETANH_TASKS.md
 
 # Tài liệu nội bộ
 /HDS.xlsx
+/docs/superpowers/
+
+# Cấu hình bí mật chỉ dùng ở máy local
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/TestResults/

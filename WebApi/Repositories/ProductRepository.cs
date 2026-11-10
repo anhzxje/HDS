@@ -91,9 +91,14 @@ public class ProductRepository
 
         await using var connection = new SqlConnection(_connectionString);
 
-        var affectedRows = await connection.ExecuteAsync(SQL, new { Id = id });
-
-        return affectedRows > 0;
+        try
+        {
+            return await connection.ExecuteAsync(SQL, new { Id = id }) > 0;
+        }
+        catch (SqlException ex) when (ex.Number == SqlServerErrors.FOREIGN_KEY_CONFLICT)
+        {
+            throw new BusinessConflictException("Không thể xoá sản phẩm vì đang có dữ liệu liên quan.", ex);
+        }
     }
 
     public async Task<Guid> CreateProductAsync(CreateProductRequest request)
@@ -109,16 +114,23 @@ public class ProductRepository
 
         var newId = Guid.NewGuid();
 
-        await connection.ExecuteAsync(SQL, new
+        try
         {
-            Id = newId,
-            ProductCode = request.ProductCode?.Trim(),
-            ProductName = request.ProductName?.Trim(),
-            Unit = request.Unit?.Trim(),
-            Specification = request.Specification?.Trim(),
-            request.QuantityPerBox,
-            request.ProductWeight
-        });
+            await connection.ExecuteAsync(SQL, new
+            {
+                Id = newId,
+                ProductCode = request.ProductCode?.Trim(),
+                ProductName = request.ProductName?.Trim(),
+                Unit = request.Unit?.Trim(),
+                Specification = request.Specification?.Trim(),
+                request.QuantityPerBox,
+                request.ProductWeight
+            });
+        }
+        catch (SqlException ex) when (SqlServerErrors.IsDuplicateProductCode(ex))
+        {
+            throw new BusinessConflictException($"Mã sản phẩm {request.ProductCode?.Trim()} đã tồn tại.", ex);
+        }
 
         return newId;
     }

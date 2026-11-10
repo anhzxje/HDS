@@ -1,28 +1,28 @@
--- USE [HDS_Intern];
--- GO
+USE [HDS_Intern];
+GO
 
--- CREATE OR ALTER FUNCTION dbo.fnSaleOutReport
--- (
---     @StartDate int,
---     @EndDate int
--- )
--- RETURNS TABLE
--- AS
--- RETURN
--- (
---     SELECT
---         mp.Id AS ProductId,
---         mp.ProductCode,
---         mp.ProductName,
---         SUM(COALESCE(so.Quantity, 0)) AS TotalQuantity,
---         SUM(COALESCE(so.Amount, 0)) AS TotalAmount
---     FROM dbo.SaleOut AS so
---     INNER JOIN dbo.MasterProduct AS mp
---         ON so.ProductId = mp.Id
---     WHERE so.OrderDate >= @StartDate
---       AND so.OrderDate <= @EndDate
---     GROUP BY
---         mp.Id,
---         mp.ProductCode,
---         mp.ProductName
--- );
+CREATE OR ALTER FUNCTION dbo.fnSaleOutReport
+(
+    @StartDate int,
+    @EndDate int
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT
+        mp.Id AS ProductId,
+        mp.ProductCode,
+        mp.ProductName,
+        SUM(COALESCE(so.Quantity, 0)) AS TotalQuantity,
+        SUM(COALESCE(so.Amount, 0)) AS TotalAmount
+    FROM dbo.SaleOut AS so
+    INNER JOIN dbo.MasterProduct AS mp
+        ON so.ProductId = mp.Id
+    WHERE so.OrderDate >= @StartDate
+      AND so.OrderDate <= @EndDate
+    GROUP BY
+        mp.Id,
+        mp.ProductCode,
+        mp.ProductName
+);

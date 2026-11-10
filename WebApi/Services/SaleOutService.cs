@@ -1,3 +1,4 @@
+using WebApi.Models.Exceptions;
 using WebApi.Services.Imports;
 using WebApi.Repositories;
 using WebApi.Models.SaleOuts;
@@ -40,7 +41,7 @@ public class SaleOutService
         if (!string.IsNullOrWhiteSpace(keyword) &&
             (string.IsNullOrWhiteSpace(field) || !allowedFields.TryGetValue(field, out columnExpr)))
         {
-            throw new ArgumentException("Trường tìm kiếm không hợp lệ.", nameof(field));
+            throw new RequestValidationException("Trường tìm kiếm không hợp lệ.");
         }
 
         return await _saleOutRepository.GetSaleOutsAsync(columnExpr, keyword, page, pageSize);
@@ -136,7 +137,7 @@ public class SaleOutService
     {
         if (startDate > endDate)
         {
-            throw new ArgumentException(
+            throw new RequestValidationException(
                 "Từ ngày không được lớn hơn đến ngày.");
         }
 

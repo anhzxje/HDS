@@ -1,3 +1,4 @@
+using WebApi.Models.Exceptions;
 using System.Globalization;
 using WebApi.Models.Validation;
 
@@ -28,7 +29,7 @@ public static class SaleOutRules
         decimal price, string? productCode = null, int? rowNumber = null)
     {
         if (!IsValidLine(quantity, quantityPerBox, price))
-            throw new ArgumentException("Số liệu không hợp lệ hoặc vượt giới hạn (tối đa 3 chữ số thập phân).");
+            throw new RequestValidationException("Số liệu không hợp lệ hoặc vượt giới hạn (tối đa 3 chữ số thập phân).");
         return new(productId, quantity, quantityPerBox, price,
             CalculateBoxQuantity(quantity, quantityPerBox), CalculateAmount(quantity, price), productCode, rowNumber);
     }
@@ -37,14 +38,14 @@ public static class SaleOutRules
     {
         if (!DateOnly.TryParseExact(value, DATE_FORMAT, CultureInfo.InvariantCulture,
             DateTimeStyles.None, out var orderDate))
-            throw new ArgumentException("Ngày đặt hàng không hợp lệ.");
+            throw new RequestValidationException("Ngày đặt hàng không hợp lệ.");
         return orderDate;
     }
 
     public static string CreateNumber(string prefix, int sequence)
     {
         if (sequence < 1 || sequence > MAX_MONTHLY_SEQUENCE)
-            throw new InvalidOperationException("Đã hết mã phiếu trong tháng.");
+            throw new BusinessConflictException("Đã hết mã phiếu trong tháng.");
         return prefix + sequence.ToString("D4", CultureInfo.InvariantCulture);
     }
 }

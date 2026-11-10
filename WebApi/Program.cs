@@ -1,4 +1,5 @@
 using WebApi.Services;
+using WebApi.Errors;
 using WebApi.Repositories;
 using OfficeOpenXml;
 using QuestPDF.Infrastructure;
@@ -20,7 +21,10 @@ builder.Services.AddScoped<SaleOutPdfService>();
 builder.Services.AddScoped<SaleOutReportService>();
 
 // Đăng ký controller và dịch vụ tạo tài liệu OpenAPI.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<ApiErrorResultFilter>());
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = context => ApiProblemDetails.Normalize(context.HttpContext, context.ProblemDetails));
 builder.Services.AddOpenApi();
 
 QuestPDF.Settings.License = LicenseType.Community;
@@ -34,19 +38,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Ghi lại các lỗi không được xử lý, sau đó để middleware của framework trả response.
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next(context);
-    }
-    catch (Exception exception)
-    {
-        app.Logger.LogError(exception, "Yêu cầu {Method} {Path} thất bại", context.Request.Method, context.Request.Path);
-        throw;
-    }
-});
+// Xử lý exception và lỗi HTTP rỗng bằng cùng cấu trúc ProblemDetails.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 // Chuyển hướng sang HTTPS khi có cấu hình cổng HTTPS.
 app.UseHttpsRedirection();

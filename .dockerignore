@@ -1,0 +1,11 @@
+.git
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/TestResults
+.env
+.env.*
+**/appsettings.Local.json
+WebApi.Tests
+docs

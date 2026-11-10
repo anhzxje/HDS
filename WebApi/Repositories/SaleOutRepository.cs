@@ -1,3 +1,4 @@
+using WebApi.Models.Exceptions;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using WebApi.Models.SaleOuts;
@@ -97,7 +98,7 @@ public class SaleOutRepository
             SELECT @result;
             """, transaction: transaction);
         if (lockResult < 0)
-            throw new InvalidOperationException("Không thể tạo phiếu lúc này, vui lòng thử lại.");
+            throw new BusinessConflictException("Không thể tạo phiếu lúc này, vui lòng thử lại.");
     }
 
     private static async Task<string> SaveDocumentAsync(SqlConnection connection, SqlTransaction transaction,
@@ -115,7 +116,7 @@ public class SaleOutRepository
         foreach (var line in document.Items)
         {
             if (!productCodes.ContainsKey(line.ProductId))
-                throw new ArgumentException("Sản phẩm không tồn tại.");
+                throw new RequestValidationException("Sản phẩm không tồn tại.");
         }
         var duplicates = (await connection.QueryAsync<Guid>("""
             SELECT DISTINCT ProductId FROM dbo.SaleOut
@@ -124,7 +125,7 @@ public class SaleOutRepository
             .ToHashSet();
         var duplicate = document.Items.FirstOrDefault(item => duplicates.Contains(item.ProductId));
         if (duplicate is not null)
-            throw new InvalidOperationException($"Số PO khách hàng: {document.CustomerPoNo}; Mã sản phẩm: {productCodes[duplicate.ProductId]} đã có trên hệ thống");
+            throw new BusinessConflictException($"Số PO khách hàng: {document.CustomerPoNo}; Mã sản phẩm: {productCodes[duplicate.ProductId]} đã có trên hệ thống");
     }
 
     private static async Task<string> AllocateSaleOutNumberAsync(SqlConnection connection,
@@ -182,7 +183,7 @@ public class SaleOutRepository
         foreach (var line in lines)
         {
             if (line.ProductCode is null || !productIds.ContainsKey(line.ProductCode))
-                throw new ArgumentException($"Dòng {line.RowNumber}: Mã sản phẩm {line.ProductCode} không tồn tại.");
+                throw new RequestValidationException($"Dòng {line.RowNumber}: Mã sản phẩm {line.ProductCode} không tồn tại.");
         }
         foreach (var document in documents)
         {

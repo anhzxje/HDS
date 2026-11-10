@@ -1,3 +1,4 @@
+using WebApi.Models.Exceptions;
 using WebApi.Services.Imports;
 using WebApi.Models.Products;
 using WebApi.Repositories;
@@ -34,7 +35,7 @@ public class ProductService
         if (!string.IsNullOrWhiteSpace(keyword) &&
             (string.IsNullOrWhiteSpace(field) || !allowedFields.TryGetValue(field, out columnName)))
         {
-            throw new ArgumentException("Trường tìm kiếm không hợp lệ.", nameof(field));
+            throw new RequestValidationException("Trường tìm kiếm không hợp lệ.");
         }
 
         return await _productRepository.GetProductsAsync(columnName, keyword, page, pageSize);

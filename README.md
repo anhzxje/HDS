@@ -84,7 +84,7 @@ HDS/
 * `ProductList` điều phối màn hình; `ProductToolbar`, `ProductResults`, `ProductFormDialog` phụ trách từng phần giao diện. `useProducts` quản lý tải dữ liệu, phân trang và xóa; `productForm` chuẩn bị và kiểm tra dữ liệu biểu mẫu.
 * Các component gọi API sản phẩm qua `productApi`.
 * `ProductImportReader` và `SaleOutImportReader` đọc và kiểm tra dữ liệu theo nghiệp vụ. `ExcelImport` dùng chung phần kiểm tra file, tiêu đề, số và validation model.
-* Service điều phối nghiệp vụ và xuất Excel qua `ExcelExport`; Repository thực thi SQL. Controller trả HTTP response và ghi log các exception đã xử lý.
+* Service điều phối nghiệp vụ và xuất Excel qua `ExcelExport`; Repository thực thi SQL. Controller trả HTTP response; `ApiExceptionHandler` xử lý và ghi log exception tập trung.
 
 ### Cấu trúc hai màn frontend
 
@@ -127,15 +127,15 @@ Ví dụ: `GET /api/products?page=1&pageSize=20` đi qua `ProductsController.Get
 ## 🚦 Hướng dẫn cài đặt & Khởi chạy
 
 ### 1. Cấu hình Cơ sở dữ liệu
-Đảm bảo SQL Server đang hoạt động. Các lệnh trong `WebApi/Sql/schema.sql` và `WebApi/Sql/fnSaleOutReport.sql` hiện đều được comment, nên chạy trực tiếp các file sẽ không tạo đối tượng nào. Với database mới, bỏ tiền tố comment `--` khỏi các lệnh cần dùng trong bản sao của `schema.sql`, rồi thực thi để tạo database `HDS_Intern`, bảng và index. Tiếp theo, bỏ comment và chạy `fnSaleOutReport.sql` trên database đó để tạo hàm báo cáo. Với database đã tồn tại, kiểm tra schema trước khi thực thi các lệnh tạo đối tượng.
+Đảm bảo SQL Server đang hoạt động. Chạy lần lượt `WebApi/Sql/schema.sql` rồi `WebApi/Sql/fnSaleOutReport.sql` bằng SSMS hoặc `sqlcmd` (công cụ phải hỗ trợ batch `GO`). Script tạo database, bảng và index nếu chưa tồn tại; hàm báo cáo dùng `CREATE OR ALTER`. Có thể chạy lại trên database đã có đúng cấu trúc. Script không tự chuyển đổi schema cũ hoặc sửa dữ liệu không tương thích; lỗi sẽ dừng quá trình khởi tạo.
 
-Cấu hình chuỗi kết nối trong `WebApi/appsettings.Development.json` hoặc biến môi trường `ConnectionStrings__DefaultConnection`:
+Không lưu mật khẩu trong file được Git theo dõi. Với môi trường development, cấu hình bằng user-secrets:
 
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=127.0.0.1,1433;Database=HDS_Intern;User Id=sa;Password=YourPassword;TrustServerCertificate=True"
-}
+```bash
+dotnet user-secrets set 'ConnectionStrings:DefaultConnection' 'Server=127.0.0.1,1433;Database=HDS_Intern;User Id=sa;Password=<MAT_KHAU_LOCAL>;TrustServerCertificate=True' --project WebApi
 ```
+
+Hoặc đặt biến môi trường `ConnectionStrings__DefaultConnection` trước khi chạy API. User-secrets được nạp trong môi trường Development; production dùng biến môi trường hoặc kho bí mật của nơi triển khai. File `appsettings.Development.json` trong repo chỉ chứa cấu hình logging. Không dùng lại mật khẩu đã từng được commit nếu đó là mật khẩu thật; thay đổi file hiện tại không xóa mật khẩu khỏi lịch sử Git.
 
 ### 2. Khởi chạy Backend (WebApi)
 
@@ -162,6 +162,66 @@ npm run dev
 > Mở trình duyệt truy cập: `http://localhost:5173`. Vite chuyển các yêu cầu `/api` tới `http://localhost:5252`; nếu đổi địa chỉ backend, cập nhật `WebApp/vite.config.js`.
 
 Kiểm tra frontend bằng `npm run lint` và tạo bản build bằng `npm run build` trong thư mục `WebApp`.
+
+---
+
+## Chạy bằng Docker Compose
+
+Stack local gồm SQL Server 2022 Developer, bước khởi tạo database, API .NET 10 và frontend Nginx. Cần Docker Engine/Desktop với Compose và môi trường chạy SQL Server Linux x86-64.
+
+```bash
+cp .env.example .env
+# Điền MSSQL_SA_PASSWORD riêng trong .env rồi chạy:
+docker compose up --build -d
+docker compose ps -a
+```
+
+Mở `http://localhost:8080`; Nginx phục vụ bản build frontend và chuyển `/api` tới API trong mạng Docker. API trực tiếp ở `http://localhost:5252`, SQL Server ở `localhost:1433`. Các cổng chỉ được bind trên loopback và có thể đổi bằng `WEB_PORT`, `API_PORT`, `SQL_PORT` trong `.env`. File `.env` không được Git theo dõi hoặc đưa vào build context.
+
+`db-init` chờ SQL Server healthy, chạy script với chế độ dừng khi lỗi; API chỉ khởi động sau khi init thành công. Khi gặp lỗi SQL, xem `docker compose logs db-init db`; không cần comment script. Init không thêm dữ liệu mẫu. Dữ liệu database được giữ trong volume `sql-data` khi dừng stack:
+
+```bash
+docker compose down
+# Sau khi cập nhật script, chạy lại bước init trên schema tương thích:
+docker compose run --rm db-init
+```
+
+Để chạy lại init, service `db` phải đang hoạt động. `docker compose down -v` sẽ xóa volume database của stack; chỉ dùng khi chủ động muốn xóa toàn bộ dữ liệu đó.
+
+Có thể build từng image bằng `docker build -f WebApi/Dockerfile -t hds-api .` và `docker build -f WebApp/Dockerfile -t hds-web .`. Dockerfile web dùng cấu hình Nginx trỏ tới hostname `api`; khi chạy riêng phải cung cấp API ở hostname đó hoặc điều chỉnh cấu hình Nginx.
+
+Docker Compose này phục vụ phát triển/kiểm thử, dùng tài khoản `sa` và SQL Server Developer. Khi triển khai thực tế cần chọn edition SQL Server phù hợp, tài khoản database với quyền cần thiết và cấu hình HTTPS tại reverse proxy. API không cần cấu hình CORS khi frontend và `/api` được phục vụ cùng origin theo cấu hình Nginx hiện tại.
+
+EPPlus đang cấu hình cá nhân phi thương mại và QuestPDF Community trong `Program.cs`; môi trường sử dụng phải đáp ứng điều kiện license tương ứng.
+
+## Kiểm thử và CI
+
+```bash
+dotnet test WebApi.Tests/WebApi.Tests.csproj
+cd WebApp
+npm ci
+npm run lint
+npm run build
+```
+
+`WebApi.Tests` kiểm tra quy tắc làm tròn, giới hạn số, mã phiếu, đọc/validate Excel và cấu trúc lỗi HTTP. Các test này không cần SQL Server. Sau khi stack Docker chạy, kiểm tra thêm database, ràng buộc SQL, cấp mã đồng thời, PDF và Excel qua Nginx:
+
+```bash
+python3 scripts/smoke-test.py http://localhost:8080
+```
+
+Smoke test tạo dữ liệu có mã riêng và xóa các dòng vừa tạo khi kết thúc. GitHub Actions chạy build/test .NET, lint/build frontend và một job build/chạy stack Docker, kiểm tra khả năng chạy lại SQL init rồi chạy smoke test.
+
+## Quy ước xử lý lỗi API
+
+Lỗi API trả `application/problem+json`, gồm `status`, `title`, `detail`, `instance`, `message` và `traceId`. `message` giữ tương thích với frontend; lỗi validation model còn có `errors`, lỗi trùng sản phẩm trong Excel giữ `row` và `productCode`.
+
+* `400`: dữ liệu không hợp lệ (`RequestValidationException`, `ImportValidationException`, validation model).
+* `409`: xung đột đã biết (`BusinessConflictException`, `DuplicateProductCodeException`), gồm trùng mã sản phẩm, sản phẩm đang được tham chiếu và xung đột khi tạo phiếu.
+* `404`: không tìm thấy tài nguyên hoặc endpoint.
+* `500`: lỗi bất ngờ, lỗi cấu hình hoặc lỗi SQL chưa được phân loại; response chỉ chứa thông báo chung, chi tiết exception nằm trong log kèm mã truy vết.
+
+Chỉ dùng exception nghiệp vụ cho thông báo được phép hiển thị cho người dùng. Không bắt mọi `ArgumentException`/`InvalidOperationException` rồi trả 400/409 vì có thể che mất lỗi lập trình hoặc cấu hình. Repository chỉ chuyển các lỗi ràng buộc SQL đã biết sang exception nghiệp vụ; controller không ghi log/bắt lại các exception đó. `ApiExceptionHandler` là nơi xử lý và ghi log tập trung. Lỗi trả trực tiếp từ controller và validation tự động được `ApiErrorResultFilter` chuẩn hóa; lỗi HTTP rỗng được `UseStatusCodePages` xử lý. Nếu response đã bắt đầu hoặc request bị hủy thì middleware của framework giữ cách xử lý tương ứng.
 
 ---
 
@@ -195,7 +255,7 @@ Các nguyên tắc chính:
 * **Tối ưu SQL:** Chỉ JOIN dữ liệu với bảng Master; danh sách màn hình phân trang trực tiếp bằng `OFFSET ... FETCH NEXT`. Truy vấn xuất dữ liệu và danh sách lựa chọn lấy các cột phục vụ đúng chức năng.
 * **Naming Conventions:**
   * C#: Biến `camelCase`, Class/Method/Property `PascalCase`; hằng số và biến static `UPPER_SNAKE_CASE`.
-  * TypeScript/React: Component `PascalCase`, biến/hàm `camelCase`, hằng số `UPPER_SNAKE_CASE`, custom hook bắt đầu bằng `use`.
+  * JavaScript/React: Component `PascalCase`, biến/hàm `camelCase`, hằng số `UPPER_SNAKE_CASE`, custom hook bắt đầu bằng `use`.
   * SQL: Tên bảng/cột `PascalCase`, Stored Procedure tiền tố `sp`, Function tiền tố `fn`.
 
 ---

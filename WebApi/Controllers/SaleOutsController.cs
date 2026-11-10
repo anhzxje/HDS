@@ -1,5 +1,4 @@
 using WebApi.Services.Imports;
-using WebApi.Models.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services;
 using WebApi.Models.SaleOuts;
@@ -11,13 +10,11 @@ namespace WebApi.Controllers;
 public class SaleOutsController : ControllerBase
 {
     private readonly SaleOutService _saleOutService;
-    private readonly ILogger<SaleOutsController> _logger;
 
     // Tiêm phụ thuộc SaleOutService vào Controller
-    public SaleOutsController(SaleOutService saleOutService, ILogger<SaleOutsController> logger)
+    public SaleOutsController(SaleOutService saleOutService)
     {
         _saleOutService = saleOutService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -40,50 +37,28 @@ public class SaleOutsController : ControllerBase
             });
         }
 
-        try
-        {
-            // 2. Gọi Service xử lý truy vấn
-            var (items, totalCount) = await _saleOutService.GetSaleOutsAsync(
-                field,
-                keyword,
-                page,
-                pageSize);
+        // 2. Gọi Service xử lý truy vấn
+        var (items, totalCount) = await _saleOutService.GetSaleOutsAsync(
+            field,
+            keyword,
+            page,
+            pageSize);
 
-            // 3. Trả về kết quả kèm metadata phân trang
-            return Ok(new
-            {
-                items,
-                totalCount,
-                page,
-                pageSize
-            });
-        }
-        catch (ArgumentException ex)
+        // 3. Trả về kết quả kèm metadata phân trang
+        return Ok(new
         {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return BadRequest(new { message = ex.Message });
-        }
+            items,
+            totalCount,
+            page,
+            pageSize
+        });
     }
     [HttpPost]
     public async Task<IActionResult> CreateSaleOut([FromBody] CreateSaleOutRequest request)
     {
-        try
-        {
-            var saleOutNo = await _saleOutService.CreateSaleOutAsync(request);
-            return StatusCode(StatusCodes.Status201Created, new { saleOutNo });
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return Conflict(new { message = ex.Message });
-        }
+        var saleOutNo = await _saleOutService.CreateSaleOutAsync(request);
+        return StatusCode(StatusCodes.Status201Created, new { saleOutNo });
     }
-
 
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> UpdateSaleOut(Guid id, [FromBody] UpdateSaleOutRequest request)
@@ -107,25 +82,7 @@ public class SaleOutsController : ControllerBase
     [RequestSizeLimit(ExcelImport.MAX_FILE_SIZE)]
     public async Task<IActionResult> ImportSaleOuts([FromForm] IFormFile? file)
     {
-        try
-        {
-            return Ok(new { importedCount = await _saleOutService.ImportSaleOutsAsync(file) });
-        }
-        catch (ImportValidationException ex)
-        {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Yêu cầu {Method} {Path} bị từ chối", Request.Method, Request.Path);
-            return Conflict(new { message = ex.Message });
-        }
+        return Ok(new { importedCount = await _saleOutService.ImportSaleOutsAsync(file) });
     }
 
     // GET: api/saleouts/export
