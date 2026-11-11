@@ -1,10 +1,12 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach, vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 
-// jsdom chưa triển khai modal dialog; chỉ mô phỏng open/close, không giả lập layout.
-HTMLDialogElement.prototype.showModal = function () { this.open = true }
-HTMLDialogElement.prototype.close = function () { this.open = false }
+import i18n from '../i18n'
+
+// SweetAlert2's browser UI is exercised separately; unit tests assert its options.
+vi.mock('sweetalert2', () => ({ default: { fire: vi.fn().mockResolvedValue({ isConfirmed: true }) } }))
+beforeEach(() => { i18n.changeLanguage('vi'); localStorage.clear() })
 
 afterEach(() => {
   cleanup()

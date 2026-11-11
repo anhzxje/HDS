@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import i18n from '../../i18n'
+import { confirmDelete, notify } from '../../utils/alerts'
+import { useEffect, useRef, useState } from 'react'
 import { deleteProduct, fetchProducts, importProducts } from '../../api/productApi'
 import { DEFAULT_PAGE_SIZE, SEARCH_FIELDS } from './productConfig'
 
@@ -12,6 +14,7 @@ export default function useProducts() {
 
   function reload(message) {
     setNotice(message)
+    if (message) notify(message)
     setRevision(current => current + 1)
   }
   function applySearch(value) {
@@ -24,7 +27,7 @@ export default function useProducts() {
   }
   function created() {
     setPage(1)
-    reload('Đã thêm sản phẩm thành công.')
+    reload(i18n.t('product.created'))
   }
 
   const actions = useProductActions({ data, page, setPage, reload, setNotice })
@@ -53,7 +56,7 @@ function useProductData({ page, pageSize, search, revision }) {
         if (controller.signal.aborted || exception.name === 'AbortError') return
         setProducts([])
         setTotalCount(0)
-        setErrorMessage(exception.message || 'Không thể tải danh sách sản phẩm.')
+        setErrorMessage(exception.message || i18n.t('error.products'))
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
@@ -66,24 +69,29 @@ function useProductData({ page, pageSize, search, revision }) {
 
 function useProductActions({ data, page, setPage, reload, setNotice }) {
   const [deletingId, setDeletingId] = useState(null)
+  const deletePending = useRef(false)
   async function remove(item) {
-    if (deletingId !== null) return
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${item.productName}" không?`)) return
+    if (deletePending.current) return
+    deletePending.current = true
     setDeletingId(item.id)
-    data.setErrorMessage('')
-    setNotice('')
     try {
+      if (!await confirmDelete(i18n.t('product.confirmDelete', { name: item.productName }))) return
+      data.setErrorMessage('')
+      setNotice('')
       await deleteProduct(item.id)
       if (data.products.length === 1 && page > 1) {
-        setNotice('Đã xóa sản phẩm.')
+        setNotice(i18n.t('product.deleted'))
+        notify(i18n.t('product.deleted'))
         setPage(current => current - 1)
       } else {
-        reload('Đã xóa sản phẩm.')
+        reload(i18n.t('product.deleted'))
       }
     } catch (exception) {
       data.setErrorMessage(exception.message)
+      notify(exception.message, 'error')
     } finally {
       setDeletingId(null)
+      deletePending.current = false
     }
   }
   async function importFile(file) {
@@ -91,7 +99,7 @@ function useProductActions({ data, page, setPage, reload, setNotice }) {
     setNotice('')
     const result = await importProducts(file)
     setPage(1)
-    reload(result.message || `Đã tải lên ${result.importedCount} sản phẩm.`)
+    reload(result.message || i18n.t('product.imported', { count: result.importedCount }))
   }
   return { deletingId, remove, importFile }
 }

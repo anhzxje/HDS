@@ -1,3 +1,4 @@
+import i18n from '../i18n'
 /**
  * Tiện ích định dạng ngày tháng và số liệu cho toàn bộ ứng dụng
  */
@@ -20,7 +21,7 @@ export function formatOrderDate(dateInt) {
  */
 export function formatNumber(num, fractionDigits = 0) {
   if (num === null || num === undefined) return '0'
-  return Number(num).toLocaleString('vi-VN', {
+  return Number(num).toLocaleString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   })

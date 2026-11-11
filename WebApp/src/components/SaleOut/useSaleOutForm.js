@@ -1,3 +1,4 @@
+import { notify } from '../../utils/alerts'
 import { useEffect, useState } from 'react'
 import { fetchProductChoices } from '../../api/productApi'
 import { createSaleOut, updateSaleOut } from '../../api/saleOutApi'
@@ -27,7 +28,7 @@ export default function useSaleOutForm(item, onSaved) {
     event.preventDefault()
     if (saving || choices.loading) return
     const message = isEditing ? validateSaleOutNumbers(form.items[0]) : validateSaleOut(form)
-    if (message) { setError(message); return }
+    if (message) { setError(message); notify(message, 'warning'); return }
     setSaving(true)
     setError('')
     try {
@@ -37,6 +38,7 @@ export default function useSaleOutForm(item, onSaved) {
       onSaved(result)
     } catch (exception) {
       setError(exception.message)
+      notify(exception.message, 'error')
     } finally {
       setSaving(false)
     }

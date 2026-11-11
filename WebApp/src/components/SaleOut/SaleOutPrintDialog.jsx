@@ -1,100 +1,52 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import Alert from '@mui/material/Alert'
+import FormDialog from '../common/FormDialog'
 import { fetchSaleOutNumbers } from '../../api/saleOutApi'
+import { downloadFile, saleOutPdfUrl } from '../../utils/downloads'
+import { notify } from '../../utils/alerts'
 
 export default function SaleOutPrintDialog({ onClose }) {
+  const { t } = useTranslation()
   const [numbers, setNumbers] = useState([])
   const [selectedNumber, setSelectedNumber] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-
   useEffect(() => {
     const controller = new AbortController()
-
-    async function loadNumbers() {
+    async function load() {
       try {
         const data = await fetchSaleOutNumbers(controller.signal)
-        setNumbers(data)
+        if (!controller.signal.aborted) setNumbers(data)
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message)
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-      }
+        if (!controller.signal.aborted && err.name !== 'AbortError') { setError(err.message); notify(err.message, 'error') }
+      } finally { if (!controller.signal.aborted) setLoading(false) }
     }
-
-    loadNumbers()
-
+    load()
     return () => controller.abort()
   }, [])
-
   function handleExport(event) {
     event.preventDefault()
-
-    if (!selectedNumber) {
-      setError('Vui lòng chọn mã số phiếu.')
-      return
-    }
-
+    if (!selectedNumber) { setError(t('validation.number')); notify(t('validation.number'), 'warning'); return }
     setError('')
-
-    window.location.href =
-      `/api/saleouts/${encodeURIComponent(selectedNumber)}/pdf`
+    downloadFile(saleOutPdfUrl(selectedNumber))
   }
-
-  return (
-    <div className="modal-overlay">
-      <div
-        className="edit-modal print-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="print-saleout-title"
-      >
-        <h2 id="print-saleout-title">In phiếu</h2>
-        <p className="print-dialog-description">Chọn phiếu xuất hàng để tải xuống bản PDF.</p>
-
-        <form onSubmit={handleExport}>
-          <label className="print-dialog-label" htmlFor="saleout-number">
-            Mã số phiếu <span aria-hidden="true">*</span>
-          </label>
-
-          <select
-            id="saleout-number"
-            value={selectedNumber}
-            onChange={(event) => setSelectedNumber(event.target.value)}
-            disabled={loading}
-            required
-          >
-            <option value="">
-              {loading ? 'Đang tải...' : '-- Chọn mã số phiếu --'}
-            </option>
-
-            {numbers.map((number) => (
-              <option key={number} value={number}>
-                {number}
-              </option>
-            ))}
-          </select>
-
-          {!loading && numbers.length === 0 && !error && (
-            <p>Chưa có phiếu xuất hàng.</p>
-          )}
-
-          {error && <p role="alert">{error}</p>}
-
-          <div className="print-dialog-actions">
-            <button type="button" onClick={onClose}>
-              Đóng
-            </button>
-
-            <button className="print-dialog-submit" type="submit" disabled={loading || numbers.length === 0}>
-              Xuất dữ liệu
-            </button>
-          </div>
-        </form>
+  return <FormDialog title={t('print.title')} titleId="print-title" onClose={onClose}>
+    <p>{t('print.description')}</p>
+    <form onSubmit={handleExport}>
+      <TextField select label={t('fields.saleOutNo')} required value={selectedNumber} disabled={loading}
+        slotProps={{ select: { native: true } }} onChange={event => setSelectedNumber(event.target.value)}>
+        <option value="">{t(loading ? 'common.loading' : 'print.choose')}</option>
+        {numbers.map(number => <option key={number} value={number}>{number}</option>)}
+      </TextField>
+      {!loading && numbers.length === 0 && !error && <p>{t('print.empty')}</p>}
+      {error && <Alert severity="error">{error}</Alert>}
+      <div className="edit-actions">
+        <Button onClick={onClose}>{t('common.close')}</Button>
+        <Button variant="contained" type="submit" disabled={loading || numbers.length === 0}>{t('common.export')}</Button>
       </div>
-    </div>
-  )
+    </form>
+  </FormDialog>
 }

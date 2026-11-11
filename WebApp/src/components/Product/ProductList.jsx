@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import UploadDialog from '../Upload/UploadDialog'
 import ProductFormDialog from './ProductFormDialog'
@@ -6,6 +7,7 @@ import ProductToolbar from './ProductToolbar'
 import useProducts from './useProducts'
 
 export default function ProductList() {
+  const { t } = useTranslation()
   const list = useProducts()
   const [dialog, setDialog] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -16,7 +18,7 @@ export default function ProductList() {
   }
   function handleSaved(result) {
     if (result?.newId) list.created()
-    else list.reload('Đã cập nhật sản phẩm.')
+    else list.reload(t('product.updated'))
     handleClose()
   }
 
@@ -24,8 +26,8 @@ export default function ProductList() {
     <main className="product-page wide">
       <header className="page-header">
         <div>
-          <h1>Sản phẩm</h1>
-          <p className="page-description">Tra cứu và theo dõi thông tin sản phẩm</p>
+          <h1>{t('product.title')}</h1>
+          <p className="page-description">{t('product.description')}</p>
         </div>
       </header>
       <ProductToolbar isLoading={list.isLoading} onSearch={list.applySearch} onOpen={setDialog} />

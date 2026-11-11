@@ -1,46 +1,34 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
 import { SEARCH_FIELDS } from './saleOutConfig'
 
-const ACTIONS = [
-  { key: 'upload', label: 'Tải lên file' },
-  { key: 'print', label: 'In phiếu' },
-  { key: 'report', label: 'Báo cáo doanh thu' },
-]
-
 export default function SaleOutToolbar({ isLoading, onSearch, onOpen }) {
-  return (
-    <section className="controls-panel" aria-label="Tìm kiếm xuất hàng">
-      <h2>Tìm kiếm đơn xuất hàng</h2>
-      <SaleOutSearch isLoading={isLoading} onSearch={onSearch} />
-      <div className="action-buttons">
-        <button type="button" onClick={() => onOpen('create')}>Thêm mới</button>
-        <button type="button" onClick={() => { window.location.href = '/api/saleouts/template' }}>Tải file mẫu</button>
-        {ACTIONS.map(action => (
-          <button key={action.key} type="button" onClick={() => onOpen(action.key)}>{action.label}</button>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function SaleOutSearch({ isLoading, onSearch }) {
+  const { t } = useTranslation()
   const [field, setField] = useState(SEARCH_FIELDS[0].value)
   const [keyword, setKeyword] = useState('')
-
   function handleSearch(event) {
     event.preventDefault()
     onSearch({ field, keyword: keyword.trim() })
   }
-
-  return (
+  return <section className="controls-panel" aria-label={t('saleOut.search')}>
+    <h2>{t('saleOut.search')}</h2>
     <form className="search-form" onSubmit={handleSearch}>
-      <label htmlFor="saleout-search-field">Tên trường</label>
-      <select id="saleout-search-field" value={field} onChange={event => setField(event.target.value)}>
-        {SEARCH_FIELDS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-      </select>
-      <input id="saleout-search-keyword" type="search" placeholder="Nhập nội dung cần tìm..."
-        aria-label="Nội dung tìm kiếm" value={keyword} onChange={event => setKeyword(event.target.value)} />
-      <button type="submit" disabled={isLoading}>Tìm kiếm</button>
+      <TextField select label={t('common.field')} value={field} sx={{ width: 240 }}
+        slotProps={{ select: { native: true } }} onChange={event => setField(event.target.value)}>
+        {SEARCH_FIELDS.map(item => <option key={item.value} value={item.value}>{t(item.label)}</option>)}
+      </TextField>
+      <TextField label={t('common.keyword')} value={keyword} sx={{ flex: 1, minWidth: 180 }}
+        onChange={event => setKeyword(event.target.value)} />
+      <Button variant="contained" type="submit" disabled={isLoading}>{t('common.search')}</Button>
     </form>
-  )
+    <div className="action-buttons">
+      <Button onClick={() => onOpen('create')}>{t('common.create')}</Button>
+      <Button component="a" href="/api/saleouts/template">{t('common.template')}</Button>
+      <Button onClick={() => onOpen('upload')}>{t('common.uploadFile')}</Button>
+      <Button onClick={() => onOpen('print')}>{t('print.title')}</Button>
+      <Button onClick={() => onOpen('report')}>{t('report.title')}</Button>
+    </div>
+  </section>
 }

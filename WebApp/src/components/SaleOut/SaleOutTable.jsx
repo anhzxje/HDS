@@ -1,60 +1,70 @@
+import { useTranslation } from 'react-i18next'
+import Table from '@mui/material/Table'
+import TableHead from '@mui/material/TableHead'
+import TableBody from '@mui/material/TableBody'
+import TableRow from '@mui/material/TableRow'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import Button from '@mui/material/Button'
 import { formatOrderDate, formatNumber, formatCurrency } from '../../utils/formatters'
 
-const TEXT_HEADERS = ['STT', 'Thao tác', 'Mã số phiếu', 'Số PO khách hàng', 'Ngày đặt hàng',
-  'Khách hàng', 'Mã sản phẩm', 'Tên sản phẩm', 'Đơn vị tính']
-const NUMBER_HEADERS = ['Số lượng', 'Số lượng/thùng', 'Số thùng', 'Đơn giá', 'Thành tiền']
+const TEXT_HEADERS = ['common.rowNumber', 'common.actions', 'fields.saleOutNo', 'fields.customerPoNo', 'fields.orderDate',
+  'fields.customerName', 'fields.productCode', 'fields.productName', 'fields.unit']
+const NUMBER_HEADERS = ['fields.quantity', 'fields.quantityPerBox', 'fields.boxQuantity', 'fields.price', 'fields.amount']
 const NUMBER_STYLE = { textAlign: 'right' }
 const AMOUNT_STYLE = { ...NUMBER_STYLE, fontWeight: 700, color: '#286b4b' }
 
 export default function SaleOutTable({ list, onEdit }) {
+  const { t } = useTranslation()
   const { saleOuts, page, pageSize, isLoading, errorMessage, deletingId, remove } = list
-  let emptyMessage = 'Không có dữ liệu xuất hàng.'
-  if (isLoading) emptyMessage = 'Đang tải dữ liệu...'
-  else if (errorMessage) emptyMessage = 'Không thể hiển thị dữ liệu.'
+  let emptyMessage = t('saleOut.empty')
+  if (isLoading) emptyMessage = t('common.loading')
+  else if (errorMessage) emptyMessage = t('common.loadFailed')
 
   return (
-    <div className="table-container">
-      <table className="wide-table">
-        <thead>
-          <tr>
-            {TEXT_HEADERS.map(label => <th key={label}>{label}</th>)}
-            {NUMBER_HEADERS.map(label => <th key={label} style={NUMBER_STYLE}>{label}</th>)}
-          </tr>
-        </thead>
-        <tbody>
+    <TableContainer>
+      <Table className="wide-table">
+        <TableHead>
+          <TableRow>
+            {TEXT_HEADERS.map(label => <TableCell key={label}>{t(label)}</TableCell>)}
+            {NUMBER_HEADERS.map(label => <TableCell key={label} style={NUMBER_STYLE}>{t(label)}</TableCell>)}
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {isLoading || saleOuts.length === 0 ? (
-            <tr><td colSpan={TEXT_HEADERS.length + NUMBER_HEADERS.length}>{emptyMessage}</td></tr>
+            <TableRow><TableCell colSpan={TEXT_HEADERS.length + NUMBER_HEADERS.length}>{emptyMessage}</TableCell></TableRow>
           ) : saleOuts.map((item, index) => (
             <SaleOutRow key={item.id} item={item} number={(page - 1) * pageSize + index + 1}
               deletingId={deletingId} onEdit={onEdit} onDelete={remove} />
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </TableContainer>
   )
 }
 
 function SaleOutRow({ item, number, deletingId, onEdit, onDelete }) {
+  const { t } = useTranslation()
   return (
-    <tr>
-      <td>{number}</td>
-      <td>
-        <button type="button" style={{ marginRight: '6px' }}
-          onClick={() => onEdit(item)} disabled={deletingId !== null}>Sửa</button>
-        <button type="button" onClick={() => onDelete(item)} disabled={deletingId !== null}>Xóa</button>
-      </td>
-      <td><strong>{item.saleOutNo}</strong></td>
-      <td>{item.customerPoNo}</td>
-      <td>{formatOrderDate(item.orderDate)}</td>
-      <td>{item.customerName}</td>
-      <td className="product-code">{item.productCode}</td>
-      <td>{item.productName}</td>
-      <td>{item.unit}</td>
-      <td style={NUMBER_STYLE}>{formatNumber(item.quantity, 3)}</td>
-      <td style={NUMBER_STYLE}>{formatNumber(item.quantityPerBox, 3)}</td>
-      <td style={NUMBER_STYLE}>{formatNumber(item.boxQuantity, 3)}</td>
-      <td style={NUMBER_STYLE}>{formatCurrency(item.price)}</td>
-      <td style={AMOUNT_STYLE}>{formatCurrency(item.amount)}</td>
-    </tr>
+    <TableRow>
+      <TableCell>{number}</TableCell>
+      <TableCell>
+        <Button type="button" style={{ marginRight: '6px' }}
+          onClick={() => onEdit(item)} disabled={deletingId !== null}>{t('common.edit')}</Button>
+        <Button type="button" onClick={() => onDelete(item)} disabled={deletingId !== null}>{t('common.delete')}</Button>
+      </TableCell>
+      <TableCell><strong>{item.saleOutNo}</strong></TableCell>
+      <TableCell>{item.customerPoNo}</TableCell>
+      <TableCell>{formatOrderDate(item.orderDate)}</TableCell>
+      <TableCell>{item.customerName}</TableCell>
+      <TableCell className="product-code">{item.productCode}</TableCell>
+      <TableCell>{item.productName}</TableCell>
+      <TableCell>{item.unit}</TableCell>
+      <TableCell style={NUMBER_STYLE}>{formatNumber(item.quantity, 3)}</TableCell>
+      <TableCell style={NUMBER_STYLE}>{formatNumber(item.quantityPerBox, 3)}</TableCell>
+      <TableCell style={NUMBER_STYLE}>{formatNumber(item.boxQuantity, 3)}</TableCell>
+      <TableCell style={NUMBER_STYLE}>{formatCurrency(item.price)}</TableCell>
+      <TableCell style={AMOUNT_STYLE}>{formatCurrency(item.amount)}</TableCell>
+    </TableRow>
   )
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import UploadDialog from '../Upload/UploadDialog'
 import SaleOutFormDialog from './SaleOutFormDialog'
@@ -8,6 +9,7 @@ import SaleOutToolbar from './SaleOutToolbar'
 import useSaleOuts from './useSaleOuts'
 
 export default function SaleOutList() {
+  const { t } = useTranslation()
   const list = useSaleOuts()
   const [dialog, setDialog] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -18,7 +20,7 @@ export default function SaleOutList() {
   }
   function handleSaved(result) {
     if (result?.saleOutNo) list.created(result.saleOutNo)
-    else list.reload('Đã cập nhật dòng xuất hàng.')
+    else list.reload(t('saleOut.updated'))
     handleClose()
   }
 
@@ -26,8 +28,8 @@ export default function SaleOutList() {
     <main className="product-page wide">
       <header className="page-header">
         <div>
-          <h1>Xuất hàng</h1>
-          <p className="page-description">Tra cứu, theo dõi và quản lý các chỉ thị xuất hàng</p>
+          <h1>{t('saleOut.title')}</h1>
+          <p className="page-description">{t('saleOut.description')}</p>
         </div>
       </header>
       <SaleOutToolbar isLoading={list.isLoading} onSearch={list.applySearch} onOpen={setDialog} />

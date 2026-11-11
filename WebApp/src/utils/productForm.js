@@ -1,3 +1,4 @@
+import i18n from '../i18n'
 import { isValidDecimal } from './decimalRules'
 
 export function createProductForm(product) {
@@ -17,12 +18,12 @@ export function buildProductPayload(form, isEditing) {
     : ['productCode', 'productName', 'unit', 'specification']
   const payload = Object.fromEntries(textFields.map(field => [field, form[field].trim()]))
   if (Object.values(payload).some(value => !value)) {
-    throw new Error('Vui lòng nhập đầy đủ thông tin sản phẩm.')
+    throw new Error(i18n.t('validation.productRequired'))
   }
   for (const field of ['quantityPerBox', 'productWeight']) {
     const value = String(form[field]).trim()
     if (!isValidDecimal(value)) {
-      throw new Error('Số lượng/thùng và trọng lượng phải không âm, đúng giới hạn và tối đa 3 chữ số thập phân.')
+      throw new Error(i18n.t('validation.productNumbers'))
     }
     payload[field] = Number(value)
   }

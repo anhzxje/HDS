@@ -1,95 +1,36 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import FormDialog from '../common/FormDialog'
+import FormField from '../common/FormField'
+import { downloadFile, revenueReportUrl } from '../../utils/downloads'
+import { notify } from '../../utils/alerts'
 
 export default function SaleOutReportDialog({ onClose }) {
+  const { t } = useTranslation()
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')
-
   function handleExport(event) {
     event.preventDefault()
-
-    if (!startDate || !endDate) {
-      setError('Vui lòng nhập đầy đủ từ ngày và đến ngày.')
-      return
-    }
-
-    if (startDate > endDate) {
-      setError('Từ ngày không được lớn hơn đến ngày.')
-      return
-    }
-
+    const message = !startDate || !endDate ? t('validation.dates') : startDate > endDate ? t('validation.dateOrder') : ''
+    if (message) { setError(message); notify(message, 'warning'); return }
     setError('')
-
-    const params = new URLSearchParams({
-      startDate,
-      endDate,
-    })
-
-    window.location.href = `/api/saleouts/revenue-report?${params}`
+    downloadFile(revenueReportUrl(startDate, endDate))
   }
-
-  return (
-    <div className="modal-overlay">
-      <div
-        className="edit-modal report-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="report-dialog-title"
-      >
-        <h2 id="report-dialog-title">Báo cáo doanh thu</h2>
-
-        <p className="report-dialog-description">
-          Chọn khoảng thời gian để xuất báo cáo sản phẩm.
-        </p>
-
-        <form onSubmit={handleExport}>
-          <div className="report-date-fields">
-            <label htmlFor="report-start-date">
-              <span>
-                Từ ngày <span className="report-required">*</span>
-              </span>
-
-              <input
-                id="report-start-date"
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                required
-              />
-            </label>
-
-            <label htmlFor="report-end-date">
-              <span>
-                Đến ngày <span className="report-required">*</span>
-              </span>
-
-              <input
-                id="report-end-date"
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                required
-              />
-            </label>
-          </div>
-
-          {error && (
-            <p className="report-dialog-error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <div className="report-dialog-actions">
-            <button type="button" onClick={onClose}>
-              Đóng
-            </button>
-
-            <button className="report-dialog-submit" type="submit">
-              Xuất dữ liệu
-            </button>
-          </div>
-        </form>
+  return <FormDialog title={t('report.title')} titleId="report-title" onClose={onClose}>
+    <p>{t('report.description')}</p>
+    <form onSubmit={handleExport}>
+      <div className="edit-form-grid">
+        <FormField label={t('report.start')} required type="date" value={startDate} onChange={event => setStartDate(event.target.value)} />
+        <FormField label={t('report.end')} required type="date" value={endDate} onChange={event => setEndDate(event.target.value)} />
       </div>
-    </div>
-  )
+      {error && <Alert severity="error">{error}</Alert>}
+      <div className="edit-actions">
+        <Button onClick={onClose}>{t('common.close')}</Button>
+        <Button variant="contained" type="submit">{t('common.export')}</Button>
+      </div>
+    </form>
+  </FormDialog>
 }

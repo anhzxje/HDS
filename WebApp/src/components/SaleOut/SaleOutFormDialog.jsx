@@ -1,110 +1,77 @@
+import { useTranslation } from 'react-i18next'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import Alert from '@mui/material/Alert'
+import FormDialog from '../common/FormDialog'
+import FormField from '../common/FormField'
 import { calculateLine } from '../../utils/saleOutForm'
 import { formatNumber, formatOrderDate } from '../../utils/formatters'
 import { DECIMAL_STEP, MAX_DECIMAL_VALUE } from '../../utils/decimalRules'
 import useSaleOutForm from './useSaleOutForm'
 
-const NUMBER_FIELDS = [
-  { name: 'quantity', label: 'Số lượng', min: DECIMAL_STEP },
-  { name: 'quantityPerBox', label: 'Số lượng/thùng', min: DECIMAL_STEP },
-  { name: 'price', label: 'Đơn giá', min: '0' },
-]
-
 export default function SaleOutFormDialog({ item, onClose, onSaved }) {
+  const { t } = useTranslation()
   const editor = useSaleOutForm(item, onSaved)
-  return (
-    <div className="modal-overlay">
-      <section className="edit-modal saleout-modal" role="dialog" aria-modal="true" aria-labelledby={editor.titleId}>
-        <h2 id={editor.titleId}>{editor.isEditing ? 'Chỉnh sửa xuất hàng' : 'Thêm mới phiếu xuất hàng'}</h2>
-        <form onSubmit={editor.save}>
-          {editor.error && <p className="error-message" role="alert">{editor.error}</p>}
-          <SaleOutHeader item={item} form={editor.form} onChange={editor.updateHeader} />
-          <SaleOutLines editor={editor} item={item} />
-          <div className="saleout-actions">
-            {!editor.isEditing && <button type="button" onClick={editor.addLine} disabled={editor.saving}>Thêm sản phẩm</button>}
-            <button type="button" onClick={onClose} disabled={editor.saving}>Đóng</button>
-            <button type="submit" disabled={editor.loading || editor.saving}>{editor.saving ? 'Đang lưu...' : 'Lưu'}</button>
-          </div>
-        </form>
-      </section>
-    </div>
-  )
-}
-
-function SaleOutHeader({ item, form, onChange }) {
-  return (
-    <div className="edit-form-grid">
-      <label>Mã số phiếu<input value={item?.saleOutNo ?? 'Tự sinh khi lưu'} disabled /></label>
-      <label>Số PO khách hàng *
-        <input required maxLength={50} value={form.customerPoNo} disabled={Boolean(item)}
-          onChange={event => onChange('customerPoNo', event.target.value)} />
-      </label>
-      <label>Khách hàng *
-        <input required maxLength={200} value={form.customerName} disabled={Boolean(item)}
-          onChange={event => onChange('customerName', event.target.value)} />
-      </label>
-      <label>Ngày đặt hàng *
-        {item ? <input value={formatOrderDate(item.orderDate)} disabled /> : (
-          <input required type="date" value={form.orderDate}
-            onChange={event => onChange('orderDate', event.target.value)} />
-        )}
-      </label>
-    </div>
-  )
-}
-
-function SaleOutLines({ editor, item }) {
-  if (item) {
-    return (
+  return <FormDialog wide title={t(editor.isEditing ? 'saleOut.edit' : 'saleOut.new')}
+    titleId={editor.titleId} onClose={onClose} busy={editor.saving}>
+    <form onSubmit={editor.save}>
+      {editor.error && <Alert severity="error">{editor.error}</Alert>}
       <div className="edit-form-grid">
-        <label>Sản phẩm<input value={`${item.productCode} (${item.productName})`} disabled /></label>
-        <label>Đơn vị tính<input value={item.unit ?? ''} disabled /></label>
-        <SaleOutNumberFields values={editor.form.items[0]}
-          onChange={(field, value) => editor.updateLine(editor.form.items[0].lineId, field, value)} />
+        <FormField label={t('fields.saleOutNo')} value={item?.saleOutNo ?? t('saleOut.autoNumber')} disabled />
+        <FormField label={t('fields.customerPoNo')} required maxLength={50} value={editor.form.customerPoNo}
+          disabled={Boolean(item) || editor.saving} onChange={event => editor.updateHeader('customerPoNo', event.target.value)} />
+        <FormField label={t('fields.customerName')} required maxLength={200} value={editor.form.customerName}
+          disabled={Boolean(item) || editor.saving} onChange={event => editor.updateHeader('customerName', event.target.value)} />
+        <FormField label={t('fields.orderDate')} type={item ? 'text' : 'date'} required
+          value={item ? formatOrderDate(item.orderDate) : editor.form.orderDate} disabled={Boolean(item) || editor.saving}
+          onChange={event => editor.updateHeader('orderDate', event.target.value)} />
       </div>
-    )
-  }
-  return (
-    <>
-      <h3>Danh sách sản phẩm</h3>
-      {editor.form.items.map((line, index) => (
-        <SaleOutLine key={line.lineId} item={line} number={index + 1} products={editor.products}
+      {item ? <div className="edit-form-grid saleout-edit-line">
+        <FormField label={t('saleOut.product')} value={`${item.productCode} (${item.productName})`} disabled />
+        <FormField label={t('fields.unit')} value={item.unit ?? ''} disabled />
+        <NumberFields values={editor.form.items[0]} saving={editor.saving}
+          onChange={(field, value) => editor.updateLine(editor.form.items[0].lineId, field, value)} />
+      </div> : <>
+        <h3>{t('product.list')}</h3>
+        {editor.form.items.map((line, index) => <SaleOutLine key={line.lineId} item={line} number={index + 1}
+          products={editor.products} disabled={editor.saving || editor.loading}
           onChange={(field, value) => editor.updateLine(line.lineId, field, value)}
-          onRemove={editor.form.items.length > 1 ? () => editor.removeLine(line.lineId) : null} />
-      ))}
-    </>
-  )
+          onRemove={editor.form.items.length > 1 ? () => editor.removeLine(line.lineId) : null} />)}
+      </>}
+      <div className="saleout-actions">
+        {!editor.isEditing && <Button onClick={editor.addLine} disabled={editor.saving}>{t('saleOut.addProduct')}</Button>}
+        <Button onClick={onClose} disabled={editor.saving}>{t('common.close')}</Button>
+        <Button variant="contained" type="submit" disabled={editor.loading || editor.saving}>
+          {t(editor.saving ? 'common.saving' : 'common.save')}</Button>
+      </div>
+    </form>
+  </FormDialog>
 }
 
-function SaleOutLine({ item, number, products, onChange, onRemove }) {
+function SaleOutLine({ item, number, products, onChange, onRemove, disabled }) {
+  const { t } = useTranslation()
   const product = products.find(option => option.id === item.productId)
   const calculated = calculateLine(item)
-  return (
-    <fieldset className="saleout-line">
-      <legend>Sản phẩm {number}</legend>
-      <div className="edit-form-grid">
-        <label>Sản phẩm *
-          <select required value={item.productId} onChange={event => onChange('productId', event.target.value)}>
-            <option value="">-- Chọn sản phẩm --</option>
-            {products.map(option => (
-              <option key={option.id} value={option.id}>{option.productCode} ({option.productName})</option>
-            ))}
-          </select>
-        </label>
-        <label>Đơn vị tính<input value={product?.unit || ''} disabled /></label>
-        <SaleOutNumberFields values={item} onChange={onChange} />
-        <label>Số thùng<input value={formatNumber(calculated.boxQuantity, 3)} disabled /></label>
-        <label>Thành tiền<input value={formatNumber(calculated.amount, 3)} disabled /></label>
-      </div>
-      {onRemove && <button type="button" onClick={onRemove}>Xóa dòng</button>}
-    </fieldset>
-  )
+  return <fieldset className="saleout-line">
+    <legend>{t('saleOut.productLine', { number })}</legend>
+    <div className="edit-form-grid">
+      <TextField select required label={t('saleOut.product')} value={item.productId} disabled={disabled}
+        slotProps={{ select: { native: true } }} onChange={event => onChange('productId', event.target.value)}>
+        <option value="">{t('saleOut.chooseProduct')}</option>
+        {products.map(option => <option key={option.id} value={option.id}>{option.productCode} ({option.productName})</option>)}
+      </TextField>
+      <FormField label={t('fields.unit')} value={product?.unit || ''} disabled />
+      <NumberFields values={item} onChange={onChange} saving={disabled} />
+      <FormField label={t('fields.boxQuantity')} value={formatNumber(calculated.boxQuantity, 3)} disabled />
+      <FormField label={t('fields.amount')} value={formatNumber(calculated.amount, 3)} disabled />
+    </div>
+    {onRemove && <Button onClick={onRemove} disabled={disabled}>{t('saleOut.removeLine')}</Button>}
+  </fieldset>
 }
 
-function SaleOutNumberFields({ values, onChange }) {
-  return NUMBER_FIELDS.map(({ name, label, min }) => (
-    <label key={name}>{label} *
-      <input required type="number" min={min} max={MAX_DECIMAL_VALUE} step={DECIMAL_STEP}
-        value={values[name]} onChange={event => onChange(name, event.target.value)} />
-    </label>
-  ))
+function NumberFields({ values, onChange, saving }) {
+  const { t } = useTranslation()
+  return ['quantity', 'quantityPerBox', 'price'].map(name => <FormField key={name} label={t(`fields.${name}`)}
+    required type="number" min={name === 'price' ? '0' : DECIMAL_STEP} max={MAX_DECIMAL_VALUE}
+    step={DECIMAL_STEP} disabled={saving} value={values[name]} onChange={event => onChange(name, event.target.value)} />)
 }

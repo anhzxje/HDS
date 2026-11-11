@@ -15,7 +15,7 @@ function setup(props = {}) {
 describe('UploadDialog', () => {
   it('opens a modal and disables submission until a file is selected', () => {
     setup()
-    expect(screen.getByRole('dialog')).toHaveAttribute('open')
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByRole('button', { name: 'Tải lên' })).toBeDisabled()
     expect(screen.getByLabelText('Chọn tệp')).toHaveAttribute('accept', '.xlsx')
   })
@@ -39,7 +39,7 @@ describe('UploadDialog', () => {
     expect(screen.getByRole('button', { name: 'Đang tải lên...' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Đóng' })).toBeDisabled()
     expect(screen.getByLabelText('Chọn tệp')).toBeDisabled()
-    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).not.toHaveBeenCalled()
     pending.resolve({ importedCount: 1 })
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
@@ -72,7 +72,7 @@ describe('UploadDialog', () => {
 
   it('allows cancellation when no upload is pending', () => {
     const { onClose } = setup()
-    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalledOnce()
   })
 })

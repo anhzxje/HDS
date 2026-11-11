@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import i18n from '../../i18n'
+import { confirmDelete, notify } from '../../utils/alerts'
+import { useEffect, useRef, useState } from 'react'
 import { deleteSaleOut, fetchSaleOuts, importSaleOuts } from '../../api/saleOutApi'
 import { DEFAULT_PAGE_SIZE, SEARCH_FIELDS } from './saleOutConfig'
 
@@ -12,6 +14,7 @@ export default function useSaleOuts() {
 
   function reload(message) {
     setNotice(message)
+    if (message) notify(message)
     setRevision(current => current + 1)
   }
   function applySearch(value) {
@@ -24,7 +27,7 @@ export default function useSaleOuts() {
   }
   function created(number) {
     setPage(1)
-    reload(`Đã tạo phiếu ${number}.`)
+    reload(i18n.t('saleOut.created', { number }))
   }
 
   const actions = useSaleOutActions({ data, page, setPage, reload, setNotice })
@@ -53,7 +56,7 @@ function useSaleOutData({ page, pageSize, search, revision }) {
         if (controller.signal.aborted || exception.name === 'AbortError') return
         setSaleOuts([])
         setTotalCount(0)
-        setErrorMessage(exception.message || 'Không thể tải danh sách xuất hàng.')
+        setErrorMessage(exception.message || i18n.t('error.saleOuts'))
       } finally {
         if (!controller.signal.aborted) setIsLoading(false)
       }
@@ -66,24 +69,29 @@ function useSaleOutData({ page, pageSize, search, revision }) {
 
 function useSaleOutActions({ data, page, setPage, reload, setNotice }) {
   const [deletingId, setDeletingId] = useState(null)
+  const deletePending = useRef(false)
   async function remove(item) {
-    if (deletingId !== null) return
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa dòng xuất hàng ${item.productCode} của phiếu ${item.saleOutNo}?`)) return
+    if (deletePending.current) return
+    deletePending.current = true
     setDeletingId(item.id)
-    data.setErrorMessage('')
-    setNotice('')
     try {
+      if (!await confirmDelete(i18n.t('saleOut.confirmDelete', { code: item.productCode, number: item.saleOutNo }))) return
+      data.setErrorMessage('')
+      setNotice('')
       await deleteSaleOut(item.id)
       if (data.saleOuts.length === 1 && page > 1) {
-        setNotice('Đã xóa dòng xuất hàng.')
+        setNotice(i18n.t('saleOut.deleted'))
+        notify(i18n.t('saleOut.deleted'))
         setPage(current => current - 1)
       } else {
-        reload('Đã xóa dòng xuất hàng.')
+        reload(i18n.t('saleOut.deleted'))
       }
     } catch (exception) {
       data.setErrorMessage(exception.message)
+      notify(exception.message, 'error')
     } finally {
       setDeletingId(null)
+      deletePending.current = false
     }
   }
   async function importFile(file) {
@@ -91,7 +99,7 @@ function useSaleOutActions({ data, page, setPage, reload, setNotice }) {
     setNotice('')
     const result = await importSaleOuts(file)
     setPage(1)
-    reload(`Đã tải lên ${result.importedCount} dòng xuất hàng.`)
+    reload(i18n.t('saleOut.imported', { count: result.importedCount }))
   }
   return { deletingId, remove, importFile }
 }

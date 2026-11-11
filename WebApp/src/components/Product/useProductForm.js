@@ -1,3 +1,5 @@
+import i18n from '../../i18n'
+import { notify } from '../../utils/alerts'
 import { useState } from 'react'
 import { createProduct, updateProduct } from '../../api/productApi'
 import { buildProductPayload, createProductForm } from '../../utils/productForm'
@@ -13,15 +15,19 @@ export default function useProductForm(item, onSaved) {
     event.preventDefault()
     if (saving) return
     setError('')
+    let requestStarted = false
     try {
       const payload = buildProductPayload(form, isEditing)
       setSaving(true)
+      requestStarted = true
       const result = isEditing
         ? await updateProduct(item.id, payload)
         : await createProduct(payload)
       onSaved(result)
     } catch (exception) {
-      setError(exception.message || 'Không thể kết nối đến WebApi.')
+      const message = exception.message || i18n.t('error.connection')
+      setError(message)
+      notify(message, requestStarted ? 'error' : 'warning')
     } finally {
       setSaving(false)
     }

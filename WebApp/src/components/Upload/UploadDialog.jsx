@@ -1,17 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import FormDialog from '../common/FormDialog'
+import { notify } from '../../utils/alerts'
 
 export default function UploadDialog({ onClose, onUpload }) {
-  const dialogRef = useRef(null)
+  const { t } = useTranslation()
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
   const [isUploading, setIsUploading] = useState(false)
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    dialog.showModal()
-    return () => dialog.close()
-  }, [])
-
   async function handleSubmit(event) {
     event.preventDefault()
     if (!file || isUploading) return
@@ -21,25 +19,23 @@ export default function UploadDialog({ onClose, onUpload }) {
       await onUpload(file)
       onClose()
     } catch (err) {
-      setError(err.message || 'Không thể tải lên dữ liệu.')
-    } finally {
-      setIsUploading(false)
-    }
+      const message = err.message || t('error.upload')
+      setError(message)
+      notify(message, 'error')
+    } finally { setIsUploading(false) }
   }
-
-  return (
-    <dialog ref={dialogRef} className="edit-modal upload-dialog" aria-labelledby="upload-title" onCancel={(event) => { event.preventDefault(); if (!isUploading) onClose() }}>
-      <form onSubmit={handleSubmit}>
-        <h2 id="upload-title">Tải lên tập tin</h2>
-        <label className="upload-file-label" htmlFor="upload-file">Chọn tệp</label>
-        <input id="upload-file" className="upload-input" type="file" accept=".xlsx" disabled={isUploading} onChange={(event) => { setFile(event.target.files?.[0] || null); setError('') }} />
-        <p className="upload-file-name">{file ? file.name : 'Chọn tệp Excel (.xlsx), tối đa 5 MB'}</p>
-        {error && <p className="edit-error" role="alert">{error}</p>}
-        <div className="edit-actions">
-          <button type="button" onClick={onClose} disabled={isUploading}>Đóng</button>
-          <button type="submit" disabled={!file || isUploading}>{isUploading ? 'Đang tải lên...' : 'Tải lên'}</button>
-        </div>
-      </form>
-    </dialog>
-  )
+  return <FormDialog title={t('upload.title')} titleId="upload-title" onClose={onClose} busy={isUploading}>
+    <form onSubmit={handleSubmit}>
+      <Button component="label" htmlFor="upload-file" disabled={isUploading}>{t('upload.choose')}</Button>
+      <input id="upload-file" className="upload-input" type="file" accept=".xlsx" disabled={isUploading}
+        onChange={event => { setFile(event.target.files?.[0] || null); setError('') }} />
+      <p className="upload-file-name">{file ? file.name : t('upload.hint')}</p>
+      {error && <Alert severity="error">{error}</Alert>}
+      <div className="edit-actions">
+        <Button onClick={onClose} disabled={isUploading}>{t('common.close')}</Button>
+        <Button variant="contained" type="submit" disabled={!file || isUploading}>
+          {t(isUploading ? 'upload.uploading' : 'upload.upload')}</Button>
+      </div>
+    </form>
+  </FormDialog>
 }
