@@ -209,17 +209,4 @@ Chỉ publish web loopback mặc định; `compose.local.yml` tùy chọn mở S
 
 `publish.yml` riêng, chỉ workflow_dispatch có confirm_publish=true, main hoặc version tag vX.Y.Z, và CI push main đã thành công cho đúng SHA. Publish GHCR bằng GITHUB_TOKEN, tag full SHA và version nếu có, OCI source/revision labels. Chưa publish image, không có automatic production deploy và không sửa repository settings/secrets.
 
-## Known Limitations
-
-- Chưa có authentication/authorization policy, CORS cho origin độc lập hay ingress TLS production hoàn chỉnh. HTTP local có thể log cảnh báo HTTPS port; middleware HTTPS giữ nguyên.
-- SQL schema cho phép NULL ở nhiều cột. PO + ProductId dùng application validation/lock, không có unique constraint tương ứng. Các writer ngoài ứng dụng không được bảo vệ bởi quy tắc đó.
-- Các nhánh timeout application lock, lỗi ngoài ý muốn giữa transaction, request cancellation tới Dapper và mọi tình huống load/stress chưa được bao phủ đầy đủ. Production repositories chưa nhận CancellationToken.
-- Test PDF xác minh tạo file/status/signature, không so sánh trực quan nội dung từng trang. Chưa có browser E2E đầy đủ với SQL hoặc ma trận đa trình duyệt.
-- Chưa đặt coverage gate trong CI. Tỷ lệ là bằng chứng thực thi, không thay thế scenario review/mutation testing; chưa thực hiện mutation testing.
-- Frontend main chunk vẫn vượt 500 kB. FE dùng Number nên các biên decimal lớn cần tiếp tục kiểm tra độ chính xác; không đổi công thức trong audit này.
-- SQL image hiện hữu dùng launcher không forward SIGTERM đầy đủ, có thể phải chờ stop timeout. Script test mới dùng SQL entrypoint trực tiếp trên tmpfs; cấu hình runtime production cũ không bị sửa trong audit.
-- Compose dùng SQL Developer/sa và TrustServerCertificate; cần edition, tài khoản và TLS phù hợp trước production. EPPlus hiện license cá nhân phi thương mại, QuestPDF Community; kiểm tra điều kiện sử dụng trước triển khai.
-
-Chi tiết trước/sau, inventory từng test file, module coverage và các nhánh chưa chạy: [TEST_COVERAGE_REPORT.md](TEST_COVERAGE_REPORT.md).
-
 Tác giả: Nguyễn Việt Anh — HDS Developer.
