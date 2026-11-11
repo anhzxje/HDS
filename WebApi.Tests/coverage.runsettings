@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Include>[WebApi]*</Include>
+          <!-- Exclude only SDK/OpenAPI generated sources; retain all owned production code. -->
+          <ExcludeByFile>**/obj/**</ExcludeByFile>
+          <Format>cobertura,opencover</Format>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

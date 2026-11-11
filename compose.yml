@@ -1,12 +1,12 @@
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server@sha256:cf8f0ab2ebe61feec2eed2629061a07d247f791c2a8ddda74a4ac9f06a291718
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Điền MSSQL_SA_PASSWORD trong .env}
-    ports:
-      - "127.0.0.1:${SQL_PORT:-1433}:1433"
+    restart: unless-stopped
+    stop_grace_period: 60s
     volumes:
       - sql-data:/var/opt/mssql
     healthcheck:
@@ -17,7 +17,7 @@ services:
       start_period: 20s
 
   db-init:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server@sha256:cf8f0ab2ebe61feec2eed2629061a07d247f791c2a8ddda74a4ac9f06a291718
     depends_on:
       db:
         condition: service_healthy
@@ -34,14 +34,16 @@ services:
       dockerfile: WebApi/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=HDS_Intern;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
-    ports:
-      - "127.0.0.1:${API_PORT:-5252}:8080"
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=HDS_Intern;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;ConnectRetryCount=3;ConnectRetryInterval=5"
+    restart: unless-stopped
+    stop_grace_period: 40s
     depends_on:
       db-init:
         condition: service_completed_successfully
 
   web:
+    restart: unless-stopped
+    stop_grace_period: 30s
     build:
       context: .
       dockerfile: WebApp/Dockerfile
@@ -49,7 +51,7 @@ services:
       - "127.0.0.1:${WEB_PORT:-8080}:8080"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   sql-data:

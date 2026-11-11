@@ -7,5 +7,11 @@ export default mergeConfig(viteConfig, defineConfig({
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.test.{js,jsx}'],
     clearMocks: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/*.test.{js,jsx}', 'src/test/**'],
+      reporter: ['text', 'html', 'json', 'json-summary', 'lcov'],
+    },
   },
 }))

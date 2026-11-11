@@ -8,6 +8,9 @@ import urllib.parse
 import urllib.request
 import uuid
 
+# This test creates/deletes records. Require deliberate opt-in on an isolated DB.
+if '--allow-writes' not in sys.argv:
+    raise SystemExit('Refusing writes. Use an isolated test database and pass --allow-writes explicitly.')
 base_url = sys.argv[1].rstrip('/') if len(sys.argv) > 1 else 'http://localhost:8080'
 
 

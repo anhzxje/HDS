@@ -2,30 +2,45 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   api:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          cache: true
+          cache-dependency-path: |
+            WebApi/WebApi.csproj
+            WebApi.Tests/WebApi.Tests.csproj
       - run: dotnet restore WebApi.Tests/WebApi.Tests.csproj
       - run: dotnet build WebApi.Tests/WebApi.Tests.csproj -c Release --no-restore
-      - run: dotnet test WebApi.Tests/WebApi.Tests.csproj -c Release --no-build --logger trx --results-directory TestResults
+      # SQL tests must execute, not silently skip for lack of a connection.
+      # This script owns a fresh tmpfs SQL container and also collects coverage.
+      - run: bash scripts/test-backend-sql.sh --no-build --no-restore
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results
-          path: TestResults
+          name: backend-test-results
+          path: WebApi.Tests/TestResults/sql
+          if-no-files-found: warn
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: WebApp
@@ -33,32 +48,71 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.22.2'
           cache: npm
           cache-dependency-path: WebApp/package-lock.json
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: WebApp/coverage
+          if-no-files-found: warn
       - run: npm run build
 
   docker-smoke:
+    needs: [api, web]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      COMPOSE_FILE: compose.yml:compose.ci.yml
+      COMPOSE_PROJECT_NAME: hds-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      WEB_PORT: '18080'
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
       - name: Create temporary database password
         shell: bash
         run: |
           password="Aa1!$(openssl rand -hex 24)"
           echo "::add-mask::$password"
           echo "MSSQL_SA_PASSWORD=$password" >> "$GITHUB_ENV"
-      - run: docker compose up -d --build
-      - name: Check database initialization can run again
+      - run: docker compose config --quiet
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: WebApi/Dockerfile
+          load: true
+          tags: hds-ci-api:local
+          cache-from: type=gha,scope=hds-api
+          cache-to: type=gha,scope=hds-api,mode=max
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: WebApp/Dockerfile
+          load: true
+          tags: hds-ci-web:local
+          cache-from: type=gha,scope=hds-web
+          cache-to: type=gha,scope=hds-web,mode=max
+      - name: Start isolated stack and wait for readiness
+        run: docker compose up -d --no-build --wait --wait-timeout 240
+      - name: Check SQL initialization is repeatable
         run: docker compose run --rm db-init
-      - name: Check API, constraints, document numbers, PDF and Excel through Nginx
-        run: python3 scripts/smoke-test.py http://localhost:8080
+      - name: Check users, Nginx configuration and runtime payload
+        run: |
+          docker compose exec -T api sh -c 'test "$(id -u)" != 0 && test ! -d /usr/share/dotnet/sdk && test ! -d /src'
+          docker compose exec -T web sh -c 'test "$(id -u)" != 0 && test ! -d /app/node_modules && test ! -d /app/src && nginx -t'
+      - name: Check SPA, API reads, headers, cache and gzip
+        run: python3 scripts/check-runtime.py http://127.0.0.1:18080
+      - name: Check constraints, concurrent numbering, PDF and Excel on temporary SQL
+        run: python3 scripts/smoke-test.py http://127.0.0.1:18080 --allow-writes
       - name: Show service logs on failure
         if: failure()
         run: docker compose logs --no-color --tail=100
-      - name: Clean up test containers and volume
+      - name: Stop only the test stack (SQL tmpfs disappears with its container)
         if: always()
-        run: docker compose down -v
+        run: docker compose down --remove-orphans

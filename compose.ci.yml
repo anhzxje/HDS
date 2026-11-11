@@ -1,0 +1,14 @@
+# Compose >= 2.24.4. Never mount the persistent sql-data volume in CI.
+services:
+  db:
+    restart: "no"
+    volumes: !reset []
+    tmpfs:
+      - /var/opt/mssql:uid=10001,gid=0,mode=0770,size=1073741824
+  api:
+    image: hds-ci-api:local
+    restart: "no"
+  web:
+    image: hds-ci-web:local
+    restart: "no"
+volumes: !reset {}

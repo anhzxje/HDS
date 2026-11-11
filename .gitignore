@@ -38,3 +38,9 @@ VIETANH_TASKS.md
 !.env.example
 **/appsettings.Local.json
 **/TestResults/
+
+# Ignore documentation folder
+/docs/
+
+# Generated test coverage reports
+**/coverage/
