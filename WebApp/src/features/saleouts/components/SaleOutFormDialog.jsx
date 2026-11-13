@@ -56,7 +56,7 @@ function SaleOutLine({ item, number, products, onChange, onRemove, disabled }) {
     <legend>{t('saleOut.productLine', { number })}</legend>
     <div className="edit-form-grid">
       <TextField select required label={t('saleOut.product')} value={item.productId} disabled={disabled}
-        slotProps={{ select: { native: true } }} onChange={event => onChange('productId', event.target.value)}>
+        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={event => onChange('productId', event.target.value)}>
         <option value="">{t('saleOut.chooseProduct')}</option>
         {products.map(option => <option key={option.id} value={option.id}>{option.productCode} ({option.productName})</option>)}
       </TextField>

@@ -23,7 +23,7 @@ export default function SaleOutTable({ list, onEdit }) {
 
   return (
     <TableContainer>
-      <Table className="wide-table">
+      <Table className="wide-table saleout-table">
         <TableHead>
           <TableRow>
             {TEXT_HEADERS.map(label => <TableCell key={label}>{t(label)}</TableCell>)}

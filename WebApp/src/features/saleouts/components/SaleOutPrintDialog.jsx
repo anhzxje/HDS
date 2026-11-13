@@ -12,7 +12,7 @@ export default function SaleOutPrintDialog({ onClose }) {
     <p>{t('print.description')}</p>
     <form onSubmit={handleExport}>
       <TextField select label={t('fields.saleOutNo')} required value={selectedNumber} disabled={loading}
-        slotProps={{ select: { native: true } }} onChange={event => setSelectedNumber(event.target.value)}>
+        slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={event => setSelectedNumber(event.target.value)}>
         <option value="">{t(loading ? 'common.loading' : 'print.choose')}</option>
         {numbers.map(number => <option key={number} value={number}>{number}</option>)}
       </TextField>

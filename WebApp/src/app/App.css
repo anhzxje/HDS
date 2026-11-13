@@ -11,7 +11,17 @@
 .results-panel { overflow: hidden; }
 .results-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; padding: 24px; }
 .results-heading p { color: #607469; }
-.wide-table { white-space: nowrap; }
+.wide-table { table-layout: auto; }
+.wide-table .MuiTableCell-root { padding: 12px; overflow-wrap: anywhere; }
+.wide-table .MuiTableCell-head { font-weight: 700; }
+.wide-table .MuiTableCell-root:nth-child(1),
+.wide-table .MuiTableCell-root:nth-child(2) { white-space: nowrap; }
+.product-table { min-width: 900px; }
+.product-table .MuiTableCell-root:nth-child(4) { min-width: 180px; }
+.product-table .MuiTableCell-root:nth-child(6) { min-width: 150px; }
+.saleout-table { min-width: 1500px; }
+.saleout-table .MuiTableCell-root:nth-child(6),
+.saleout-table .MuiTableCell-root:nth-child(8) { min-width: 160px; }
 .product-code { color: #286b4b; font-weight: 700; }
 .pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 16px; padding: 20px; }
 .pagination > span:first-child { margin-right: auto; }

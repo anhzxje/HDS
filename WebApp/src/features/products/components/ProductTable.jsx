@@ -14,7 +14,7 @@ export default function ProductTable({ list, onEdit }) {
   else if (errorMessage) emptyMessage = t('common.loadFailed')
   return (
     <TableContainer>
-      <Table className="wide-table">
+      <Table className="wide-table product-table">
         <TableHead><TableRow>
           <TableCell>{t('common.rowNumber')}</TableCell><TableCell>{t('common.actions')}</TableCell><TableCell>{t('fields.productCode')}</TableCell><TableCell>{t('fields.productName')}</TableCell>
           <TableCell>{t('fields.unit')}</TableCell><TableCell>{t('fields.specification')}</TableCell><TableCell>{t('fields.quantityPerBox')}</TableCell><TableCell>{t('fields.productWeight')}</TableCell>
